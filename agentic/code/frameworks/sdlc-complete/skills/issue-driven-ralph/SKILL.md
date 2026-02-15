@@ -1,3 +1,8 @@
+---
+name: issue-driven-ralph
+description: Orchestrates issue-driven Ralph loops that post cycle status to issue threads and incorporate human feedback in each cycle.
+---
+
 # Issue-Driven Ralph Loop Skill
 
 ## Triggers

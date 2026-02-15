@@ -242,8 +242,8 @@ describe.skipIf(!GIT_INIT_AVAILABLE)('Codex Integration', () => {
 
       // Check YAML frontmatter format
       expect(skillMd).toMatch(/^---\n/);
-      expect(skillMd).toMatch(/name: voice-apply/);
-      expect(skillMd).toMatch(/description: .+/);
+      expect(skillMd).toMatch(/name: "voice-apply"/);
+      expect(skillMd).toMatch(/description: ".+"/);
       expect(skillMd).toMatch(/\n---\n/);
     });
 
@@ -262,7 +262,7 @@ describe.skipIf(!GIT_INIT_AVAILABLE)('Codex Integration', () => {
         );
 
         // Extract description from frontmatter
-        const descMatch = skillMd.match(/description: (.+)/);
+        const descMatch = skillMd.match(/description:\s+"(.+)"/);
         if (descMatch) {
           expect(descMatch[1].length).toBeLessThanOrEqual(500);
         }

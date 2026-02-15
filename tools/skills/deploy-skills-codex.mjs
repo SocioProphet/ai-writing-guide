@@ -56,6 +56,25 @@ function ensureDir(d) {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 }
 
+function stripWrappingQuotes(value) {
+  const trimmed = String(value ?? '').trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function yamlDoubleQuoted(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r?\n/g, ' ')
+    .trim();
+}
+
 /**
  * Find skill directories containing SKILL.md
  */
@@ -93,7 +112,7 @@ function parseSkillContent(content, skillName) {
       if (colonIdx > 0) {
         const key = line.slice(0, colonIdx).trim();
         const value = line.slice(colonIdx + 1).trim();
-        metadata[key] = value;
+        metadata[key] = stripWrappingQuotes(value);
       }
     }
 
@@ -119,7 +138,13 @@ function parseSkillContent(content, skillName) {
   // Look for first paragraph as description (skip empty lines)
   for (let i = bodyStartIdx; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line && !line.startsWith('#') && !line.startsWith('-') && !line.startsWith('|')) {
+    if (
+      line &&
+      !line.endsWith(':') &&
+      !line.startsWith('#') &&
+      !line.startsWith('-') &&
+      !line.startsWith('|')
+    ) {
       description = line;
       break;
     }
@@ -181,8 +206,8 @@ function transformToCodexSkill(skillDir) {
 
   // Build Codex skill format
   const codexContent = `---
-name: ${name}
-description: ${description}
+name: "${yamlDoubleQuoted(name)}"
+description: "${yamlDoubleQuoted(description)}"
 ---
 
 ${body.trim()}
