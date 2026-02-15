@@ -91,9 +91,14 @@ git commit -S -m "release: v2026.1.5 \"Release Name\""
 # Create annotated tag
 git tag -s v2026.1.5 -m "v2026.1.5 - Release Name"
 
-# Push to both remotes
+# Push to Gitea (triggers automatic Gitea release + publish workflows)
 git push origin main --tags
+
+# Optional: mirror tag/commit to GitHub
 git push github main --tags
+
+# GitHub release remains manual
+gh release create v2026.1.5 --repo jmagly/aiwg --title "v2026.1.5 - Release Name" --generate-notes
 ```
 
 **Sandboxed agent note**: If release operations run inside a filesystem/network sandbox, request **escalated execution** for signed `git commit`/`git tag` commands so GPG can access `~/.gnupg` and the local gpg-agent socket.

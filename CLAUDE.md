@@ -450,9 +450,9 @@ Before pushing a version tag:
    - Migration notes (if applicable)
    - Links to relevant documentation
 4. **Commit and tag** - `git tag -m "vX.X.X" vX.X.X`
-5. **Push to both remotes** - `git push origin main --tags && git push github main --tags`
-6. **Update GitHub Release** - Add proper release notes via `gh release edit`
-7. **Create Gitea Release** - Via MCP tool or web UI
+5. **Push tag to Gitea** - `git push origin main --tags` (automatically creates Gitea Release)
+6. **Optionally mirror to GitHub** - `git push github main --tags`
+7. **Update/Create GitHub Release manually** - via `gh release create|edit`
 
 ### Version Format
 

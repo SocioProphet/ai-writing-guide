@@ -1,0 +1,55 @@
+# Gitea Release Creation
+#
+# Automatically creates (or reuses) a Gitea release when a version tag is pushed.
+# Keeps GitHub release management manual via `gh release ...`.
+
+name: Create Gitea Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    container: node:20
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Verify package version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version verified: $PKG_VERSION"
+
+      - name: Create or reuse Gitea release
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.NPM_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases" \
+            -d "{
+              \"tag_name\": \"v${VERSION}\",
+              \"name\": \"v${VERSION}\",
+              \"body\": \"## Installation\\n\\n\\\`\\\`\\\`bash\\nnpm install -g aiwg@${VERSION}\\n\\\`\\\`\\\`\\n\\nAlso available from Gitea registry:\\n\\\`\\\`\\\`bash\\nnpm install -g aiwg@${VERSION} --registry=https://git.integrolabs.net/api/packages/roctinam/npm/\\n\\\`\\\`\\\`\\n\\n## Notes\\n\\nGitea release is auto-created on tag push. GitHub releases are managed manually.\",
+              \"draft\": false,
+              \"prerelease\": false
+            }" || echo "Release may already exist"

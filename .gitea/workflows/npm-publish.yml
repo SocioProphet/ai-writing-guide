@@ -12,6 +12,10 @@
 #   2. Commit: git commit -am "release: vYYYY.M.PATCH"
 #   3. Tag: git tag vYYYY.M.PATCH
 #   4. Push: git push origin main --tags
+#
+# Note:
+# - Gitea release creation is handled by .gitea/workflows/gitea-release.yml
+# - GitHub release creation is manual via `gh release ...`
 
 name: Publish to npm registries
 
@@ -140,23 +144,6 @@ jobs:
           echo "Registries: Gitea + npmjs.org"
           npm pack
           ls -la *.tgz
-
-      - name: Create Gitea Release
-        if: github.event_name == 'push' && github.event.inputs.dry_run != 'true'
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.NPM_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases" \
-            -d "{
-              \"tag_name\": \"v${VERSION}\",
-              \"name\": \"v${VERSION}\",
-              \"body\": \"## Installation\\n\\n\\\`\\\`\\\`bash\\nnpm install -g aiwg@${VERSION}\\n\\\`\\\`\\\`\\n\\nAlso available from Gitea registry:\\n\\\`\\\`\\\`bash\\nnpm install -g aiwg@${VERSION} --registry=${{ env.GITEA_NPM_REGISTRY }}\\n\\\`\\\`\\\`\\n\\n## What's Changed\\n\\nSee commit history for details.\",
-              \"draft\": false,
-              \"prerelease\": false
-            }" || echo "Release may already exist"
 
   verify-install:
     name: Verify Installation
