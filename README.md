@@ -33,7 +33,7 @@ AIWG is a cognitive architecture that provides AI coding assistants with structu
 
 ### For Practitioners
 
-**Turn unpredictable AI assistance into reliable, auditable workflows.** Research shows 47% of AI workflows produce inconsistent results without reproducibility constraints. AIWG implements closed-loop self-correction, human-in-the-loop validation (reducing costs by 84%), and retrieval-first citation architecture (eliminating the 56% hallucination rate of generation-only approaches). The `.aiwg/` artifact directory provides persistent memory across sessions, ensuring context isn't lost when your AI assistant restarts.
+**Turn unpredictable AI assistance into reliable, auditable workflows.** Research shows many AI workflows produce inconsistent results without reproducibility constraints. AIWG implements closed-loop self-correction, human-in-the-loop validation, and retrieval-first citation architecture that grounds all references in verified sources rather than generative recall. The `.aiwg/` artifact directory provides persistent memory across sessions, ensuring context isn't lost when your AI assistant restarts.
 
 ### For Researchers
 
