@@ -259,6 +259,38 @@ export function parseTools(toolsString) {
 }
 
 // ============================================================================
+// Skill-Command Collision Detection
+// ============================================================================
+
+/**
+ * Filter out commands that share a name with a skill.
+ * Skills are the richer format (triggers, NL routing, behavior spec) and take precedence.
+ *
+ * @param {string[]} commandFiles - Array of command file paths
+ * @param {string[]} skillDirs - Array of skill directory paths
+ * @returns {string[]} Filtered command files with collisions removed
+ */
+export function filterCommandsAgainstSkills(commandFiles, skillDirs) {
+  if (!skillDirs.length || !commandFiles.length) return commandFiles;
+
+  // Build set of skill names (directory basenames, without extension)
+  const skillNames = new Set(skillDirs.map(d => path.basename(d)));
+
+  const filtered = [];
+  for (const f of commandFiles) {
+    // Command name is the filename without extension
+    const commandName = path.basename(f).replace(/\.\w+$/, '');
+    if (skillNames.has(commandName)) {
+      console.log(`skip (skill precedence): command "${commandName}" — skill with same name takes precedence`);
+    } else {
+      filtered.push(f);
+    }
+  }
+
+  return filtered;
+}
+
+// ============================================================================
 // File Deployment
 // ============================================================================
 

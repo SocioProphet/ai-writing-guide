@@ -35,7 +35,8 @@ import {
   deploySkillDir,
   normalizeDeploymentMode,
   collectFrameworkArtifacts,
-  cleanupOldRuleFiles
+  cleanupOldRuleFiles,
+  filterCommandsAgainstSkills
 } from './base.mjs';
 
 // ============================================================================
@@ -430,9 +431,14 @@ export async function deploy(opts) {
     deployAgents(agentFiles, target, opts);
   }
 
+  // Filter commands that collide with skills (skills take precedence)
+  const filteredCommands = (shouldDeploySkills || skillsOnly)
+    ? filterCommandsAgainstSkills(commandFiles, skillDirs)
+    : commandFiles;
+
   if (shouldDeployCommands || commandsOnly) {
-    console.log(`\nDeploying ${commandFiles.length} commands as agents (YAML format)...`);
-    deployCommands(commandFiles, target, opts);
+    console.log(`\nDeploying ${filteredCommands.length} commands as agents (YAML format)...`);
+    deployCommands(filteredCommands, target, opts);
   }
 
   if (shouldDeploySkills || skillsOnly) {

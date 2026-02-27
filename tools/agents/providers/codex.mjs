@@ -37,7 +37,8 @@ import {
   getFrameworksForMode,
   normalizeDeploymentMode,
   getRulesIndexPath,
-  cleanupOldRuleFiles
+  cleanupOldRuleFiles,
+  filterCommandsAgainstSkills
 } from './base.mjs';
 
 // ============================================================================

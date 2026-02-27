@@ -35,7 +35,8 @@ import {
   deployFiles,
   normalizeDeploymentMode,
   collectFrameworkArtifacts,
-  cleanupOldRuleFiles
+  cleanupOldRuleFiles,
+  filterCommandsAgainstSkills
 } from './base.mjs';
 
 // ============================================================================
@@ -478,6 +479,23 @@ export async function deploy(opts) {
     generateWindsurfRules(srcRoot, target, opts);
   }
 
+  // Collect skill directories early so we can filter command collisions
+  const skillDirs = [];
+  if (shouldDeploySkills || skillsOnly) {
+    // All addons (dynamically discovered)
+    if (normalizedMode === 'general' || normalizedMode === 'sdlc' || normalizedMode === 'both' || normalizedMode === 'all') {
+      skillDirs.push(...getAddonSkillDirs(srcRoot));
+    }
+
+    const frameworkSkills = collectFrameworkArtifacts(srcRoot, normalizedMode, {
+      includeAgents: false,
+      includeCommands: false,
+      includeSkills: true,
+      includeRules: false
+    });
+    skillDirs.push(...frameworkSkills.skills);
+  }
+
   // Deploy commands as Windsurf workflows
   if (deployCommands || commandsOnly) {
     // Collect command files based on mode
@@ -497,33 +515,20 @@ export async function deploy(opts) {
     });
     commandFiles.push(...frameworkCommands.commands);
 
-    if (commandFiles.length > 0) {
-      deployWorkflows(commandFiles, target, opts);
+    // Filter commands that collide with skills (skills take precedence)
+    const filteredCommands = skillDirs.length > 0
+      ? filterCommandsAgainstSkills(commandFiles, skillDirs)
+      : commandFiles;
+
+    if (filteredCommands.length > 0) {
+      deployWorkflows(filteredCommands, target, opts);
     }
   }
 
   // Deploy skills
-  if (shouldDeploySkills || skillsOnly) {
-    // Collect skill directories based on mode
-    const skillDirs = [];
-
-    // All addons (dynamically discovered)
-    if (normalizedMode === 'general' || normalizedMode === 'sdlc' || normalizedMode === 'both' || normalizedMode === 'all') {
-      skillDirs.push(...getAddonSkillDirs(srcRoot));
-    }
-
-    const frameworkSkills = collectFrameworkArtifacts(srcRoot, normalizedMode, {
-      includeAgents: false,
-      includeCommands: false,
-      includeSkills: true,
-      includeRules: false
-    });
-    skillDirs.push(...frameworkSkills.skills);
-
-    if (skillDirs.length > 0) {
-      console.log(`\nDeploying ${skillDirs.length} skills...`);
-      deploySkills(skillDirs, target, opts);
-    }
+  if (skillDirs.length > 0 && (shouldDeploySkills || skillsOnly)) {
+    console.log(`\nDeploying ${skillDirs.length} skills...`);
+    deploySkills(skillDirs, target, opts);
   }
 
   // Deploy rules

@@ -24,7 +24,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { getFrameworksForMode, normalizeDeploymentMode } from '../agents/providers/base.mjs';
+import { getFrameworksForMode, normalizeDeploymentMode, getAddonSkillDirs, listSkillDirs, collectFrameworkArtifacts } from '../agents/providers/base.mjs';
 
 const CODEX_PROMPTS_DIR = path.join(os.homedir(), '.codex', 'prompts');
 
@@ -283,6 +283,15 @@ function getCommandDirectories(srcRoot, mode) {
     ensureDir(target);
   }
 
+  // Collect skill names to detect command/skill collisions
+  const skillNames = new Set();
+  const addonSkills = getAddonSkillDirs(srcRoot);
+  for (const d of addonSkills) skillNames.add(path.basename(d));
+  const frameworkSkills = collectFrameworkArtifacts(srcRoot, mode, {
+    includeAgents: false, includeCommands: false, includeSkills: true, includeRules: false
+  });
+  for (const d of frameworkSkills.skills) skillNames.add(path.basename(d));
+
   // Get command directories based on mode
   const commandDirs = getCommandDirectories(srcRoot, mode);
   let totalDeployed = 0;
@@ -295,6 +304,13 @@ function getCommandDirectories(srcRoot, mode) {
     console.log(`\n${label} (${commandFiles.length} prompts):`);
 
     for (const commandFile of commandFiles) {
+      // Skip commands that collide with skills (skills take precedence)
+      const commandName = path.basename(commandFile, '.md');
+      if (skillNames.has(commandName)) {
+        console.log(`  skip (skill precedence): command "${commandName}" — skill with same name takes precedence`);
+        totalSkipped++;
+        continue;
+      }
       try {
         const prompt = transformToCodexPrompt(commandFile, prefix);
         const result = deployPrompt(prompt, target, { force, dryRun });
