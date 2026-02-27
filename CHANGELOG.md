@@ -5,6 +5,60 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.2.12] - 2026-02-26 – "Doc Sync & Accelerate" Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **`aiwg doc-sync` command (#41)** | Detect and fix documentation-code drift with 8 parallel auditors, cross-reference checks, and auto-fix patterns |
+| **`aiwg sdlc-accelerate` command (#42)** | End-to-end SDLC ramp-up from idea to construction-ready with state machine pipeline and resume support |
+| **2 new skills** | `doc-sync` and `sdlc-accelerate` registered in skills manifest with trigger phrases |
+| **Accelerate state schema** | YAML-defined state machine for pipeline phase tracking with gate results |
+| **Construction Ready Brief template** | Handoff artifact template for construction-ready projects |
+| **Doc-sync auditor templates** | Task definitions for 8 domain auditors and 4 cross-reference checks |
+| **Auto-fix patterns** | Concrete fix patterns for 5 auto-fixable drift categories with safety checks |
+| **24 integration tests** | Full test coverage for sdlc-accelerate entry points, phase resume, gate handling, state management, dry-run |
+| **HashiCorp references removed** | All vendor-specific HashiCorp/Terraform/Vault references replaced with generic equivalents across 16 files |
+| **CLI reference accuracy** | Command counts, categories, and totals corrected to match actual 42-command inventory |
+
+### Added
+
+- **`doc-sync` command** — bidirectional documentation-code synchronization with `code-to-docs`, `docs-to-code`, and `full` directions, parallel auditor dispatch, incremental scanning, and auto-fix with Ralph refinement
+- **`sdlc-accelerate` command** — orchestrates intake → LOM gate → elaboration → ABM gate → construction prep → brief generation with `--from-codebase`, `--resume`, `--skip-to`, and `--dry-run` switches
+- **`doc-sync` skill** (`agentic/code/frameworks/sdlc-complete/skills/doc-sync/SKILL.md`) — natural language trigger for documentation drift detection
+- **`sdlc-accelerate` skill** (`agentic/code/frameworks/sdlc-complete/skills/sdlc-accelerate/SKILL.md`) — natural language trigger for SDLC pipeline acceleration
+- **Accelerate state schema** (`agentic/code/frameworks/sdlc-complete/schemas/flows/accelerate-state.yaml`) — defines phase lifecycle, gate results, and decision tracking
+- **Construction Ready Brief template** (`agentic/code/frameworks/sdlc-complete/templates/management/construction-ready-brief-template.md`) — structured handoff template with architecture, iteration plan, and risk sections
+- **Auditor task templates** (`agentic/code/frameworks/sdlc-complete/templates/doc-sync/auditor-tasks.md`) — 8 Wave 1 domain auditors (cli-ref, extension-type, provider, skill, agent, config, readme, changelog) and 4 Wave 2 cross-reference checks
+- **Auto-fix patterns** (`agentic/code/frameworks/sdlc-complete/templates/doc-sync/auto-fix-patterns.md`) — fix patterns for numeric claims, table entries, argument hints, broken links, and broken @-mentions
+- **Integration tests** (`test/integration/sdlc-accelerate.test.ts`) — 24 tests covering command definition, entry point detection, phase resume, gate handling, state file management, and dry-run behavior
+
+### Changed
+
+- **Skills manifest** updated with `doc-sync` and `sdlc-accelerate` entries including trigger phrases
+- **Skill inventory** (`docs/development/skill-inventory.md`) updated: SDLC Framework Skills count 8→10, total 53→55
+- **CLI reference** (`docs/cli-reference.md`) corrected: Ralph commands 7→4, added Metrics (3), Documentation (1), SDLC Orchestration (1), Reproducibility (4) categories, total 36→42
+- **CLAUDE.md** updated with doc-sync and sdlc-accelerate in CLI quick reference
+
+### Fixed
+
+- **HashiCorp vendor lock-in** — replaced all HashiCorp-specific references (Terraform, Vault, Consul, Packer) with generic equivalents across 16 files including agent definitions, security templates, deployment templates, legal templates, and toolsmith configs
+- **CLI reference command counts** — total command count corrected from stale "40" to actual "42"; Ralph category corrected from 7 non-existent commands to actual 4
+- **Duplicate plugin agents** — synced `plugins/sdlc/agents/` with framework source for cloud-architect, devops-engineer, and security-auditor
+
+---
+
+## [2026.2.11] - 2026-02-24 – "Service Verify"
+
+Maintenance release: CI improvements for auto-creating Gitea releases on tag push, Codex SKILL.md YAML fixes.
+
+---
+
+## [2026.2.10] - 2026-02-22 – "Alt Platform Service"
+
+Maintenance release: tracked agent sources for CI, alternative platform service verification.
+
+---
+
 ## [2026.2.9] - 2026-02-15 – "Manifest Native" Release
 
 | What changed | Why you care |

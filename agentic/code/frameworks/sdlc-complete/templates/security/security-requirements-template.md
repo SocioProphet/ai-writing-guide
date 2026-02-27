@@ -499,7 +499,7 @@ All security requirements must maintain evidence of implementation:
 | Category | Tool/Technology | Purpose | Status |
 |----------|----------------|---------|--------|
 | Authentication | `[OAuth 2.0, SAML]` | SSO/Federation | Implemented |
-| Secrets Management | `[HashiCorp Vault]` | Key/Secret storage | Planned |
+| Secrets Management | `[secrets manager]` | Key/Secret storage | Planned |
 | SAST | `[SonarQube]` | Code analysis | Implemented |
 | DAST | `[OWASP ZAP]` | Dynamic testing | Planned |
 | Monitoring | `[Splunk]` | SIEM/Logging | Implemented |

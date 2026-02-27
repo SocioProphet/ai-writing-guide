@@ -223,7 +223,7 @@ config/
 
 **Secrets Storage**:
 
-- Secrets backend: [AWS Secrets Manager, HashiCorp Vault, Azure Key Vault]
+- Secrets backend: [AWS Secrets Manager, Azure Key Vault, secrets management solution]
 - Secret naming: [{environment}/{service}/{secret-name}]
 - Secret encryption: [KMS-encrypted at rest]
 

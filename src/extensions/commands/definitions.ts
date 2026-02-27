@@ -934,6 +934,77 @@ export const metricsTokensCommand: Extension = {
   } satisfies CommandMetadata,
 };
 
+// Documentation Commands
+
+export const docSyncCommand: Extension = {
+  id: 'doc-sync',
+  type: 'command',
+  name: 'Doc Sync',
+  description: 'Synchronize documentation and code to eliminate drift with parallel audit and auto-fix',
+  version: '1.0.0',
+  capabilities: ['cli', 'documentation', 'synchronization', 'audit'],
+  keywords: ['doc-sync', 'documentation', 'sync', 'drift', 'audit', 'reconcile'],
+  category: 'documentation',
+  platforms: {
+    claude: 'full',
+    generic: 'full',
+  },
+  deployment: {
+    pathTemplate: '.{platform}/commands/{id}.md',
+    core: false,
+  },
+  metadata: {
+    type: 'command',
+    template: 'orchestration',
+    argumentHint: '<direction> [--dry-run --scope <path> --incremental]',
+    allowedTools: ['Task', 'Read', 'Write', 'Bash', 'Glob', 'Grep', 'Edit'],
+    executionSteps: [
+      'Parse direction and options',
+      'Dispatch parallel domain auditors',
+      'Run cross-reference validation',
+      'Generate drift report',
+      'Apply auto-fixes and Ralph refinement',
+      'Validate changes',
+    ],
+  } satisfies CommandMetadata,
+};
+
+// SDLC Orchestration Commands
+
+export const sdlcAccelerateCommand: Extension = {
+  id: 'sdlc-accelerate',
+  type: 'command',
+  name: 'SDLC Accelerate',
+  description: 'End-to-end SDLC ramp-up from idea to construction-ready with automated phase transitions',
+  version: '1.0.0',
+  capabilities: ['cli', 'sdlc', 'orchestration', 'pipeline', 'accelerate'],
+  keywords: ['sdlc-accelerate', 'accelerate', 'bootstrap', 'ramp-up', 'construction-ready', 'pipeline'],
+  category: 'sdlc-orchestration',
+  platforms: {
+    claude: 'full',
+    generic: 'full',
+  },
+  deployment: {
+    pathTemplate: '.{platform}/commands/{id}.md',
+    core: false,
+  },
+  metadata: {
+    type: 'command',
+    template: 'orchestration',
+    argumentHint: '<description> [--from-codebase <path> --resume --dry-run]',
+    allowedTools: ['Task', 'Read', 'Write', 'Glob', 'TodoWrite'],
+    executionSteps: [
+      'Detect entry point',
+      'Execute intake phase',
+      'Evaluate LOM gate',
+      'Execute elaboration phase',
+      'Evaluate ABM gate',
+      'Execute construction prep',
+      'Generate Construction Ready Brief',
+    ],
+  } satisfies CommandMetadata,
+};
+
 // Reproducibility Commands
 
 export const executionModeCommand: Extension = {
@@ -1041,7 +1112,7 @@ export const reproducibilityValidateCommand: Extension = {
 // ============================================
 
 /**
- * All command definitions (40 total)
+ * All command definitions (42 total)
  *
  * Organized by category:
  * - Maintenance (4): help, version, doctor, update
@@ -1056,6 +1127,8 @@ export const reproducibilityValidateCommand: Extension = {
  * - Scaffolding (7): add-agent, add-command, add-skill, add-template, scaffold-addon, scaffold-extension, scaffold-framework
  * - Ralph (4): ralph, ralph-status, ralph-abort, ralph-resume
  * - Metrics (3): cost-report, cost-history, metrics-tokens
+ * - Documentation (1): doc-sync
+ * - SDLC Orchestration (1): sdlc-accelerate
  * - Reproducibility (4): execution-mode, snapshot, checkpoint, reproducibility-validate
  */
 export const commandDefinitions: Extension[] = [
@@ -1118,6 +1191,12 @@ export const commandDefinitions: Extension[] = [
   costReportCommand,
   costHistoryCommand,
   metricsTokensCommand,
+
+  // Documentation (1)
+  docSyncCommand,
+
+  // SDLC Orchestration (1)
+  sdlcAccelerateCommand,
 
   // Reproducibility (4)
   executionModeCommand,

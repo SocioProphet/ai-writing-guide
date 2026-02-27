@@ -123,7 +123,7 @@ Before deploying any code that uses tokens:
 
 Planned additions to this addon:
 
-- Vault integration patterns (HashiCorp Vault, AWS Secrets Manager)
+- Secrets management integration (AWS Secrets Manager, Azure Key Vault)
 - Certificate-based authentication
 - OAuth flow patterns
 - OIDC integration

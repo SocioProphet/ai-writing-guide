@@ -72,7 +72,7 @@ curl -s -H "Authorization: token $(cat ~/.config/gitea/token)" \
 
 ### 3. Vault Integration (Future)
 
-Reserved for enterprise deployments with HashiCorp Vault or similar.
+Reserved for enterprise deployments with a secrets manager or similar.
 
 ```bash
 # Future pattern (not yet implemented)

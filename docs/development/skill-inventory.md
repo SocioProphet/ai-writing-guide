@@ -1,6 +1,6 @@
 # Skill Inventory
 
-Complete catalog of 53 skills across all AIWG packages.
+Complete catalog of 55 skills across all AIWG packages.
 
 ## Utility Skills (aiwg-utils)
 
@@ -73,9 +73,11 @@ Complete catalog of 53 skills across all AIWG packages.
 | `architecture-evolution` | Track and manage architecture changes |
 | `artifact-orchestration` | Coordinate artifact generation workflows |
 | `decision-support` | Support technical decision making |
+| `doc-sync` | Synchronize documentation and code to eliminate drift |
 | `gate-evaluation` | Evaluate phase gate readiness |
 | `incident-triage` | Triage production incidents |
 | `risk-cycle` | Manage risk identification cycle |
+| `sdlc-accelerate` | End-to-end SDLC ramp-up from idea to construction-ready |
 | `sdlc-reports` | Generate SDLC status reports |
 | `security-assessment` | Perform security assessments |
 | `test-coverage` | Analyze test coverage |

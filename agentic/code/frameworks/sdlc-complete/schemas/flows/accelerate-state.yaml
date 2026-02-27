@@ -1,0 +1,144 @@
+# accelerate-state.yaml
+# Schema for SDLC Accelerate pipeline state tracking
+# Used by /sdlc-accelerate for resume and state persistence
+
+type: object
+required:
+  - version
+  - started
+  - description
+  - entryPoint
+  - phases
+
+properties:
+  version:
+    type: string
+    description: Schema version
+    const: "1.0.0"
+
+  started:
+    type: string
+    format: date-time
+    description: Pipeline start timestamp
+
+  completed:
+    type: string
+    format: date-time
+    description: Pipeline completion timestamp (set when brief is generated)
+
+  description:
+    type: string
+    description: Project description provided at pipeline start
+
+  entryPoint:
+    type: string
+    enum:
+      - intake-wizard
+      - intake-from-codebase
+      - resume
+      - skip-to
+    description: How the pipeline was initiated
+
+  fromCodebasePath:
+    type: string
+    description: Path provided with --from-codebase (if applicable)
+
+  guidance:
+    type: string
+    description: Project-level guidance text from --guidance switch
+
+  phases:
+    type: object
+    description: Phase completion tracking
+    properties:
+      intake:
+        $ref: "#/$defs/phaseState"
+      gate_lom:
+        $ref: "#/$defs/gateState"
+      elaboration:
+        $ref: "#/$defs/phaseState"
+      gate_abm:
+        $ref: "#/$defs/gateState"
+      construction_prep:
+        $ref: "#/$defs/phaseState"
+      brief:
+        $ref: "#/$defs/phaseState"
+
+  decisions:
+    type: array
+    description: All decisions made during pipeline execution
+    items:
+      type: object
+      required:
+        - phase
+        - question
+        - answer
+        - timestamp
+      properties:
+        phase:
+          type: string
+          description: Phase where decision was made
+        question:
+          type: string
+          description: Question presented to user
+        answer:
+          type: string
+          description: User's decision
+        timestamp:
+          type: string
+          format: date-time
+
+$defs:
+  phaseState:
+    type: object
+    required:
+      - status
+    properties:
+      status:
+        type: string
+        enum: [pending, in_progress, completed, skipped]
+      startedAt:
+        type: string
+        format: date-time
+      completedAt:
+        type: string
+        format: date-time
+      artifacts:
+        type: array
+        items:
+          type: string
+        description: Paths to artifacts produced in this phase
+      notes:
+        type: string
+        description: Any notes about this phase
+
+  gateState:
+    type: object
+    required:
+      - status
+    properties:
+      status:
+        type: string
+        enum: [pending, in_progress, completed, skipped]
+      result:
+        type: string
+        enum: [PASS, CONDITIONAL, FAIL]
+        description: Gate evaluation result
+      completedAt:
+        type: string
+        format: date-time
+      waivers:
+        type: array
+        items:
+          type: object
+          properties:
+            criterion:
+              type: string
+            justification:
+              type: string
+            grantedAt:
+              type: string
+              format: date-time
+      reportPath:
+        type: string
+        description: Path to gate evaluation report

@@ -865,7 +865,7 @@ const JWT_SECRETS = {
 
 **Immediate Actions:**
 1. Generate new secret: `openssl rand -hex 64`
-2. Store in environment variable management system (AWS Secrets Manager, HashiCorp Vault)
+2. Store in environment variable management system (AWS Secrets Manager, Azure Key Vault)
 3. Deploy updated code
 4. Invalidate all existing tokens (force re-login)
 5. Remove secret from git history: `git filter-branch` or BFG Repo-Cleaner

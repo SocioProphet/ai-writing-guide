@@ -83,6 +83,16 @@
       "name": "regression-learning",
       "description": "Cross-task learning for improving regression detection through pattern recognition, test prioritization, and historical analysis",
       "triggers": ["learn from regressions", "improve regression detection", "analyze regression patterns", "prioritize regression tests", "what tests should I run", "predict regression risk", "similar past failures"]
+    },
+    {
+      "name": "doc-sync",
+      "description": "Synchronize documentation and code to eliminate drift through parallel audit and automated fixes",
+      "triggers": ["align docs to code", "align code to docs", "sync documentation", "doc audit", "check doc drift", "are docs up to date", "find stale documentation", "reconcile docs and code"]
+    },
+    {
+      "name": "sdlc-accelerate",
+      "description": "End-to-end SDLC ramp-up from idea to construction-ready with automated phase transitions and focused gate questions",
+      "triggers": ["set up project", "take me to construction", "bootstrap SDLC", "ramp up project", "accelerate project", "full SDLC setup", "prepare project for development", "get this project construction-ready"]
     }
   ],
   "dependencies": {

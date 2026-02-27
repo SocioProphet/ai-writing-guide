@@ -24,6 +24,8 @@ Complete reference for all `aiwg` CLI commands.
 - [Plugin Commands](#plugin-commands)
 - [Scaffolding Commands](#scaffolding-commands)
 - [Ralph Commands](#ralph-commands)
+- [Documentation Commands](#documentation-commands)
+- [SDLC Orchestration Commands](#sdlc-orchestration-commands)
 
 ---
 
@@ -367,7 +369,7 @@ Workspace: /home/user/customer-portal
 Git: clean (main branch)
 
 Frameworks:
-  ✓ sdlc-complete v1.0.0 (35 agents, 40 commands)
+  ✓ sdlc-complete v1.0.0 (35 agents, 42 commands)
   ✓ aiwg-utils v1.0.0
 
 Artifacts:
@@ -1481,6 +1483,152 @@ aiwg ralph-config preset conservative
 
 ---
 
+## Documentation Commands
+
+### doc-sync
+
+Synchronize documentation and code to eliminate drift.
+
+```bash
+aiwg doc-sync <direction> [options]
+```
+
+**Arguments:**
+- `<direction>` - Sync direction: `code-to-docs`, `docs-to-code`, `full`
+
+**Options:**
+- `--interactive` - Prompt for each sync decision
+- `--guidance "text"` - Human guidance for ambiguous cases
+- `--scope "path"` - Limit to specific directory (default: `.`)
+- `--dry-run` - Audit only, no modifications
+- `--parallel N` - Max concurrent audit agents (default: 4)
+- `--incremental` - Git-diff since last sync instead of full scan
+- `--verbose` - Detailed per-file findings
+- `--no-commit` - Skip auto-commit
+- `--max-iterations N` - Ralph refinement iterations (default: 3)
+
+**Capabilities:** cli, documentation, synchronization, audit
+**Platforms:** All
+**Tools:** Task, Read, Write, Bash, Glob, Grep, Edit
+
+**Directions:**
+
+| Direction | Description |
+|-----------|-------------|
+| `code-to-docs` | Code is truth, update docs to match |
+| `docs-to-code` | Docs are truth, generate TODOs/fixes for code |
+| `full` | Bidirectional reconciliation |
+
+**Execution phases:**
+1. Init and file inventory
+2. Parallel domain audit (8 auditors)
+3. Cross-reference validation
+4. Drift report generation
+5. Sync planning (auto-fixable / template-fixable / human-required)
+6. Auto-fix application
+7. Ralph refinement for complex items
+8. Validation of changes
+9. Record sync state and commit
+
+**Examples:**
+
+```bash
+# Dry-run audit
+aiwg doc-sync code-to-docs --dry-run
+
+# Incremental sync after code changes
+aiwg doc-sync code-to-docs --incremental --verbose
+
+# Full bidirectional with guidance
+aiwg doc-sync full --interactive --guidance "Focus on CLI reference"
+
+# Scoped to specific directory
+aiwg doc-sync code-to-docs --scope docs/extensions/
+```
+
+**Output locations:**
+- Audit report: `.aiwg/reports/doc-sync-audit-{date}.md`
+- Sync state: `.aiwg/.last-doc-sync`
+
+---
+
+## SDLC Orchestration Commands
+
+### sdlc-accelerate
+
+End-to-end SDLC ramp-up from idea to construction-ready.
+
+```bash
+aiwg sdlc-accelerate <description> [options]
+```
+
+**Arguments:**
+- `<description>` - Project description (idea entry point)
+
+**Options:**
+- `--from-codebase <path>` - Scan existing code instead of starting from idea
+- `--interactive` - Full interactive mode at every step
+- `--guidance "text"` - Project-level guidance for all phases
+- `--auto` - Auto-proceed on CONDITIONAL gates
+- `--dry-run` - Show pipeline plan without executing
+- `--skip-to <phase>` - Jump to specific phase (validates prereqs)
+- `--resume` - Resume from detected current phase
+
+**Capabilities:** cli, sdlc, orchestration, pipeline, accelerate
+**Platforms:** All
+**Tools:** Task, Read, Write, Glob, TodoWrite
+
+**Pipeline phases:**
+
+```
+INTAKE → GATE_LOM → ELABORATION → GATE_ABM → CONSTRUCTION_PREP → BRIEF
+```
+
+| Phase | Description | Delegates To |
+|-------|-------------|-------------|
+| Intake | Project intake and inception | `/intake-wizard` or `/intake-from-codebase` |
+| LOM Gate | Lifecycle Objective Milestone | `/flow-gate-check inception` |
+| Elaboration | Architecture and requirements | `/flow-inception-to-elaboration` |
+| ABM Gate | Architecture Baseline Milestone | `/flow-gate-check elaboration` |
+| Construction Prep | Iteration planning | `/flow-elaboration-to-construction` |
+| Brief | Construction Ready Brief | Template generation |
+
+**Entry point detection:**
+
+| Condition | Entry |
+|-----------|-------|
+| No `.aiwg/` + description | `intake-wizard` |
+| No `.aiwg/` + `--from-codebase` | `intake-from-codebase` |
+| `.aiwg/` exists + `--resume` | Detect and resume |
+| `--skip-to` | Jump with prereq validation |
+
+**Examples:**
+
+```bash
+# New project from idea
+aiwg sdlc-accelerate "Customer portal with real-time chat"
+
+# From existing codebase
+aiwg sdlc-accelerate --from-codebase ./src "E-commerce platform"
+
+# Resume interrupted pipeline
+aiwg sdlc-accelerate --resume
+
+# Preview pipeline plan
+aiwg sdlc-accelerate --dry-run "Mobile banking app"
+
+# Skip to elaboration
+aiwg sdlc-accelerate --skip-to elaboration
+
+# Auto-approve everything
+aiwg sdlc-accelerate --auto "Quick prototype"
+```
+
+**State tracking:** `.aiwg/reports/accelerate-state.json`
+**Output:** `.aiwg/reports/construction-ready-brief.md`
+
+---
+
 ## Extension System
 
 ### Unified Extension Schema
@@ -1522,9 +1670,13 @@ All commands are registered as extensions in the unified schema. This enables:
 | **Utility** | 3 | prefill-cards, contribute-start, validate-metadata |
 | **Plugin** | 5 | install-plugin, uninstall-plugin, plugin-status, package-plugin, package-all-plugins |
 | **Scaffolding** | 7 | add-agent, add-command, add-skill, add-template, scaffold-addon, scaffold-extension, scaffold-framework |
-| **Ralph** | 7 | ralph, ralph-status, ralph-abort, ralph-resume, ralph-external, ralph-memory, ralph-config |
+| **Ralph** | 4 | ralph, ralph-status, ralph-abort, ralph-resume |
+| **Metrics** | 3 | cost-report, cost-history, metrics-tokens |
+| **Documentation** | 1 | doc-sync |
+| **SDLC Orchestration** | 1 | sdlc-accelerate |
+| **Reproducibility** | 4 | execution-mode, snapshot, checkpoint, reproducibility-validate |
 
-**Total:** 34 commands
+**Total:** 42 commands
 
 ---
 

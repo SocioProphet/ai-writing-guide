@@ -326,7 +326,7 @@
       "Provisioning new servers."
     ],
     "replacements": [
-      "We create EC2 instances via Terraform",
+      "We create EC2 instances via IaC",
       "Spinning up new Kubernetes nodes",
       "Use specific technical term"
     ],

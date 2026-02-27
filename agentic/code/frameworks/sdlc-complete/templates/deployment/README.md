@@ -66,7 +66,7 @@ The DevOps automation templates (ci-cd-pipeline, automated-quality-gate, infrast
 
 They do **NOT** prescribe:
 
-- **HOW** to implement (GitHub Actions vs. Jenkins, Terraform vs. CloudFormation)
+- **HOW** to implement (GitHub Actions vs. Jenkins, IaC tool vs. CloudFormation)
 - Specific tool syntax or configurations
 
 This approach allows teams to:

@@ -38,7 +38,7 @@ src/                         # CLI and MCP server implementation
 test/                        # Test suites and fixtures
 tools/                       # Build and deployment scripts
 docs/                        # Documentation
-├── cli-reference.md         # All 40 CLI commands
+├── cli-reference.md         # All 42 CLI commands
 ├── extensions/              # Extension system docs
 │   ├── overview.md
 │   ├── creating-extensions.md
@@ -127,7 +127,7 @@ aiwg new my-project    # Scaffold new project
 aiwg help              # Show all commands
 aiwg doctor            # Check installation health
 
-# See @docs/cli-reference.md for all 40 commands
+# See @docs/cli-reference.md for all 42 commands
 ```
 
 ## Project Artifacts (.aiwg/)
@@ -176,9 +176,9 @@ AIWG uses a unified extension system for all extension types:
 - `@docs/extensions/creating-extensions.md` - Build custom extensions
 - `@docs/extensions/extension-types.md` - Complete type reference
 - `@src/extensions/types.ts` - TypeScript type definitions
-- `@src/extensions/commands/definitions.ts` - All 40 command definitions
+- `@src/extensions/commands/definitions.ts` - All 42 command definitions
 
-## CLI Commands (40 Total)
+## CLI Commands (42 Total)
 
 **See `@docs/cli-reference.md` for complete documentation.**
 
@@ -198,6 +198,8 @@ AIWG uses a unified extension system for all extension types:
 | **Scaffolding** (7) | add-agent, add-command, add-skill, add-template, scaffold-addon, scaffold-extension, scaffold-framework |
 | **Ralph** (4) | ralph, ralph-status, ralph-abort, ralph-resume |
 | **Metrics** (3) | cost-report, cost-history, metrics-tokens |
+| **Documentation** (1) | doc-sync |
+| **SDLC Orchestration** (1) | sdlc-accelerate |
 | **Reproducibility** (4) | execution-mode, snapshot, checkpoint, reproducibility-validate |
 
 ### Quick Reference
@@ -244,6 +246,16 @@ aiwg ralph-resume            # Resume paused loop
 aiwg cost-report             # Show cost report for session
 aiwg cost-history            # Show historical cost data
 aiwg metrics-tokens          # Show token usage metrics
+
+# Documentation sync
+aiwg doc-sync code-to-docs --dry-run  # Audit doc drift
+aiwg doc-sync code-to-docs            # Sync docs to match code
+aiwg doc-sync full --interactive      # Bidirectional reconciliation
+
+# SDLC accelerate
+aiwg sdlc-accelerate "Project description"  # Idea to construction-ready
+aiwg sdlc-accelerate --from-codebase .      # From existing code
+aiwg sdlc-accelerate --resume               # Resume pipeline
 
 # Reproducibility
 aiwg execution-mode          # Show/set execution mode

@@ -9,7 +9,7 @@ Define infrastructure resources, architecture, and provisioning requirements as 
 - **Document Owner**: DevOps Engineer
 - **Contributor Roles**: Software Architect, Security Architect, Reliability Engineer, Network Engineer
 - **Automation Inputs**: Software Architecture (Physical/Deployment View), Security Requirements, Capacity Planning, Cost Constraints
-- **Automation Outputs**: `infrastructure.md` and tool-specific IaC configurations (Terraform, CloudFormation, Pulumi, ARM)
+- **Automation Outputs**: `infrastructure.md` and tool-specific IaC configurations (CloudFormation, Pulumi, ARM, etc.)
 
 ## Completion Checklist
 
@@ -416,7 +416,7 @@ Egress Rules:
 
 **Secrets Storage Backend**:
 
-- Solution: [AWS Secrets Manager, HashiCorp Vault, Azure Key Vault]
+- Solution: [AWS Secrets Manager, Azure Key Vault, secrets management solution]
 - Encryption: [KMS-encrypted at rest]
 - Access control: [IAM policies, RBAC]
 
@@ -565,7 +565,7 @@ Egress Rules:
 
 **Infrastructure-as-Code State Backend**:
 
-- State storage: [S3 bucket, Azure Blob Storage, GCS bucket, Terraform Cloud]
+- State storage: [S3 bucket, Azure Blob Storage, GCS bucket, IaC remote backend]
 - State locking: [DynamoDB, Blob leases, GCS locking]
 - State encryption: [encrypted at rest using KMS]
 
@@ -593,7 +593,7 @@ infrastructure/
 
 **Versioning Strategy**:
 
-- IaC tool version: [pinned version, e.g., Terraform 1.5.x]
+- IaC tool version: [pinned version, e.g., 1.5.x]
 - Provider versions: [pinned versions to avoid breaking changes]
 - Module versions: [semantic versioning, locked to specific versions]
 
@@ -729,7 +729,7 @@ Environment: [dev, staging, prod]
 Project: [project-name]
 Owner: [team-name]
 CostCenter: [cost-center-id]
-ManagedBy: [Terraform, CloudFormation, etc.]
+ManagedBy: [IaC tool, CloudFormation, etc.]
 ExpirationDate: [for temporary resources]
 ```
 
@@ -864,7 +864,7 @@ Before considering this template complete:
 
 This template is tool-agnostic by design. When implementing:
 
-- Translate resource definitions into tool-specific syntax (Terraform HCL, CloudFormation YAML, Pulumi code)
+- Translate resource definitions into tool-specific syntax (IaC configuration, CloudFormation YAML, Pulumi code)
 - Map networking concepts to provider-specific constructs (AWS VPC, Azure VNet, GCP VPC)
 - Adapt IAM and security configurations to provider capabilities
 - Use provider-native monitoring and logging services where available

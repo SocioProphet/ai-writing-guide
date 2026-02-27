@@ -228,7 +228,7 @@ Section 2 establishes traceability framework; Section 3 maps customer contract o
 
 | Contract Clause | System Requirement | Design Decision | Implementation Artifact | Verification Method | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| CL-CONT-2024-001-7.1 | NFR-040: EU data residency | ARCH-040: Regional data isolation (EU data in eu-central-1) | COMP-REGION-001: AWS resources deployed in eu-central-1 | VER-REGION-001: Infrastructure audit | Complete | VER-2024-Q3-030: Terraform config confirms eu-central-1 |
+| CL-CONT-2024-001-7.1 | NFR-040: EU data residency | ARCH-040: Regional data isolation (EU data in eu-central-1) | COMP-REGION-001: AWS resources deployed in eu-central-1 | VER-REGION-001: Infrastructure audit | Complete | VER-2024-Q3-030: IaC config confirms eu-central-1 |
 | CL-CONT-2024-001-7.1 | NFR-041: SCCs for cross-border transfers | ARCH-041: Standard Contractual Clauses with US support team | COMP-SCC-001: SCCs signed | VER-SCC-001: Legal review confirms SCC compliance | Complete | VER-2024-Q3-031: SCCs signed Feb 1, 2024 |
 
 ## 4 Vendor Contract Dependencies Traceability

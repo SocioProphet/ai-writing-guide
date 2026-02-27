@@ -113,12 +113,12 @@ jobs:
 
 ## Infrastructure as Code
 
-### Terraform Configuration
+### IaC Configuration
 
 ```hcl
 # AWS EKS Cluster
 module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
+  source  = "registry/aws-modules/eks/aws"
   version = "~> 19.0"
 
   cluster_name    = "production-cluster"
@@ -485,7 +485,7 @@ locals {
     Team        = var.team
     CostCenter  = var.cost_center
     Project     = var.project
-    ManagedBy   = "Terraform"
+    ManagedBy   = "IaC"
   }
 }
 ```

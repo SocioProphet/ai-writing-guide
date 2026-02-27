@@ -380,7 +380,7 @@ Section 2 identifies data residency requirements; Section 3 maps data to regions
 - **Bucket region**: [Region ID]
 - **Replication**: [Disabled / Same-region only / Cross-region with encryption]
 
-**Compliance Verification**: Infrastructure-as-Code (Terraform, CloudFormation) enforces regional constraints
+**Compliance Verification**: Infrastructure-as-Code (IaC tools, CloudFormation) enforces regional constraints
 
 #### 5.1.2 Data Residency Enforcement
 

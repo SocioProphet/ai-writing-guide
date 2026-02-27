@@ -157,7 +157,7 @@ Complete these sections immediately when defining the test strategy:
 **Environment Provisioning**:
 
 <!-- EXAMPLE:
-- Infrastructure-as-code via Terraform
+- Infrastructure-as-code (IaC)
 - Docker Compose for local development environment
 - GitHub Actions matrix for multi-browser/OS testing
 - Ephemeral environments created per pull request
