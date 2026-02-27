@@ -1,0 +1,26 @@
+# Notify aiwg.io of new release
+#
+# When a version tag is pushed, trigger a deploy of the aiwg.io marketing site
+# so it picks up the latest release info (changelog, version refs).
+
+name: Notify aiwg.io
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  trigger-deploy:
+    name: Trigger aiwg.io deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Dispatch aiwg.io deploy
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.AIWG_IO_DISPATCH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://git.integrolabs.net/api/v1/repos/roctinam/aiwg.io/actions/workflows/deploy.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"aiwg_version":"${{ gitea.ref_name }}","source_tag":"${{ gitea.ref_name }}"}}'
