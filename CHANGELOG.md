@@ -5,6 +5,23 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.2.13] - 2026-02-26
+
+| What changed | Why you care |
+|--------------|--------------|
+| **Site deploy on tag push (#355)** | Pushing a version tag now auto-triggers an aiwg.io rebuild so the marketing site stays current |
+| **Skill/command name collision fix** | Providers now prefer skills over commands when both share a name, preventing silent overwrites |
+
+### Added
+
+- **`notify-site.yml` workflow** — dispatches `aiwg.io` deploy on `v*` tag push, passing version and tag inputs via `AIWG_IO_DISPATCH_TOKEN`
+
+### Fixed
+
+- **Provider name collisions** — skill definitions now take precedence over commands when names collide during deployment
+
+---
+
 ## [2026.2.12] - 2026-02-26 – "Doc Sync & Accelerate" Release
 
 | What changed | Why you care |
