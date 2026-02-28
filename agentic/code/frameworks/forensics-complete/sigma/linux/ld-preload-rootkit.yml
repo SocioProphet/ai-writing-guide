@@ -1,0 +1,59 @@
+title: LD_PRELOAD Rootkit Indicator
+id: 9f4c1d2e-5a8b-4c7d-9e1f-2b3a4c5d6e7f
+status: stable
+description: Detects creation, modification, or access of /etc/ld.so.preload, which
+  is used by LD_PRELOAD rootkits to inject malicious shared libraries into every process
+  on the system. The presence of this file on a production system is a critical indicator
+  of compromise.
+references:
+  - https://attack.mitre.org/techniques/T1574/006/
+  - https://www.cyberciti.biz/tips/linux-shared-library-management.html
+  - https://www.chokepoint.net/2014/02/detecting-userland-preload-rootkits.html
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.persistence
+  - attack.t1574.006
+  - attack.defense_evasion
+  - attack.t1014
+logsource:
+  product: linux
+  category: file_change
+detection:
+  selection:
+    file_path: '/etc/ld.so.preload'
+  condition: selection
+falsepositives:
+  - Legitimate use of LD_PRELOAD for debugging or performance profiling in development
+    environments — this file should not exist on production systems
+  - Some monitoring agents (rarely) that use preloading for syscall interception
+level: critical
+fields:
+  - file_path
+  - file_sha256
+  - file_content
+  - process_name
+  - process_pid
+  - user
+  - timestamp
+---
+# Detection Logic Note
+#
+# Direct detection command (no SIEM required):
+#
+#   ls -la /etc/ld.so.preload && cat /etc/ld.so.preload
+#
+# If this file exists:
+# 1. STOP automated analysis immediately
+# 2. All standard binaries on this system may be compromised
+# 3. Use statically-linked binaries from clean media for further collection
+# 4. Follow red-flag-escalation.md Rule 1 escalation procedures
+#
+# Context: /etc/ld.so.preload causes the dynamic linker to load listed
+# shared libraries into every process before any other library. A malicious
+# library in this file can intercept and lie about: file listings (ls),
+# process listings (ps), network connections (netstat/ss), and system calls.
+#
+# Example malicious /etc/ld.so.preload content:
+#   /lib/libprocess-hide.so

@@ -1,0 +1,92 @@
+title: AWS IAM Privilege Escalation
+id: 4a2b6c8d-1e3f-5a7b-9c2d-4e5f6a7b8c9d
+status: stable
+description: Detects IAM privilege escalation actions in AWS CloudTrail. Covers the
+  most common escalation paths including creating new policy versions, attaching policies
+  to users or roles, and creating access keys for other users. These actions allow an
+  attacker with limited IAM write permissions to gain full administrative access.
+references:
+  - https://attack.mitre.org/techniques/T1078/004/
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+  - https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.privilege_escalation
+  - attack.t1078.004
+  - attack.persistence
+  - attack.t1098
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection_create_policy:
+    eventName: 'CreatePolicyVersion'
+    requestParameters.setAsDefault: 'true'
+  selection_attach_policy:
+    eventName:
+      - 'AttachUserPolicy'
+      - 'AttachRolePolicy'
+      - 'AttachGroupPolicy'
+    requestParameters.policyArn|contains: 'AdministratorAccess'
+  selection_create_access_key:
+    eventName: 'CreateAccessKey'
+    # Escalation pattern: creating a key for a different user (not self-service)
+    # This filter identifies keys created for another user
+    requestParameters.userName|exists: true
+  selection_set_default_policy:
+    eventName: 'SetDefaultPolicyVersion'
+  selection_add_user_to_group:
+    eventName: 'AddUserToGroup'
+    requestParameters.groupName|contains:
+      - 'Admin'
+      - 'admin'
+      - 'administrator'
+  selection_update_assume_role:
+    eventName: 'UpdateAssumeRolePolicy'
+  condition: selection_create_policy or selection_attach_policy or
+    selection_create_access_key or selection_set_default_policy or
+    selection_add_user_to_group or selection_update_assume_role
+falsepositives:
+  - Legitimate IAM administrators performing routine policy management
+  - Infrastructure automation (Terraform, CDK) applying expected configuration changes
+  - Onboarding workflows that create access keys for new users
+level: high
+fields:
+  - eventTime
+  - userIdentity.arn
+  - userIdentity.type
+  - userIdentity.accountId
+  - eventName
+  - requestParameters
+  - sourceIPAddress
+  - userAgent
+  - awsRegion
+---
+# Detection Logic Note
+#
+# CloudTrail query to find IAM escalation events (AWS CLI):
+#
+#   aws cloudtrail lookup-events \
+#     --lookup-attributes AttributeKey=EventName,AttributeValue=CreatePolicyVersion \
+#     --start-time 2025-11-01 --end-time 2025-11-15 \
+#     --output json | jq '.Events[].CloudTrailEvent | fromjson |
+#       {time: .eventTime, user: .userIdentity.arn, action: .eventName, ip: .sourceIPAddress}'
+#
+# Athena query for CloudTrail in S3:
+#
+#   SELECT eventtime, useridentity.arn, eventname, sourceipaddress, requestparameters
+#   FROM cloudtrail_logs
+#   WHERE eventname IN (
+#     'CreatePolicyVersion', 'AttachUserPolicy', 'AttachRolePolicy',
+#     'CreateAccessKey', 'AddUserToGroup', 'UpdateAssumeRolePolicy'
+#   )
+#   AND eventtime > '2025-11-01'
+#   ORDER BY eventtime;
+#
+# High-value escalation paths to investigate:
+#   1. iam:CreatePolicyVersion + iam:SetDefaultPolicyVersion = admin via policy
+#   2. iam:AttachUserPolicy with AdministratorAccess = direct admin grant
+#   3. iam:CreateAccessKey for another user = credential theft
+#   4. iam:UpdateAssumeRolePolicy = trust policy manipulation

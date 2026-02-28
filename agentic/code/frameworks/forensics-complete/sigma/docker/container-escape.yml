@@ -1,0 +1,85 @@
+title: Container Escape Attempt Detected
+id: 8f1e4c2d-7b3a-5d9e-8c1f-2d3e4f5a6b7c
+status: stable
+description: Detects indicators of container escape attempts including mounting of the
+  host filesystem, use of nsenter to enter host namespaces, chroot into mounted host
+  paths, or access to host process namespace from within a container context.
+references:
+  - https://attack.mitre.org/techniques/T1611/
+  - https://unit42.paloaltonetworks.com/container-escape-techniques/
+  - https://book.hacktricks.xyz/linux-hardening/privilege-escalation/docker-security/docker-breakout-privilege-escalation
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.privilege_escalation
+  - attack.t1611
+  - attack.escape_to_host
+  - attack.defense_evasion
+logsource:
+  product: docker
+detection:
+  selection_mount:
+    event_type: 'container.exec'
+    process_cmdline|contains:
+      - 'mount /dev/'
+      - 'mount -o bind /'
+      - '/proc/1/root'
+  selection_nsenter:
+    event_type: 'container.exec'
+    process_name: 'nsenter'
+  selection_nsenter_cmdline:
+    event_type: 'container.exec'
+    process_cmdline|contains: 'nsenter'
+  selection_chroot:
+    event_type: 'container.exec'
+    process_cmdline|contains:
+      - 'chroot /proc/1/root'
+      - 'chroot /host'
+      - 'chroot /mnt/host'
+  selection_host_proc:
+    event_type: 'container.exec'
+    process_cmdline|contains:
+      - 'cat /proc/1/environ'
+      - 'ls /proc/1/root/etc'
+      - 'ps -e'
+  condition: selection_mount or selection_nsenter or selection_nsenter_cmdline or
+    selection_chroot or selection_host_proc
+falsepositives:
+  - Legitimate debugging tools that inspect host namespaces (authorized use only)
+  - Container monitoring agents that read /proc/1 for host process visibility
+  - Kubernetes sidecar containers that share namespaces intentionally
+level: critical
+fields:
+  - container_id
+  - container_name
+  - container_image
+  - process_cmdline
+  - process_name
+  - user
+  - timestamp
+---
+# Detection Logic Note
+#
+# Common container escape techniques and how to detect them in logs:
+#
+# 1. Host path mount escape
+#    Command: docker run -v /:/host <image> chroot /host
+#    Detection: volume mount of "/" or "/etc" or "/var"
+#
+# 2. nsenter escape (requires privileged or SYS_ADMIN cap)
+#    Command: nsenter --target 1 --mount --uts --ipc --net --pid -- bash
+#    Detection: nsenter in process exec events from container context
+#
+# 3. /proc/1/root access
+#    From inside container: ls /proc/1/root/etc/
+#    This reads the host filesystem via kernel
+#    Detection: process_cmdline contains /proc/1/root
+#
+# 4. cgroup release_agent escape (CVE-2019-5736 variant)
+#    Requires container runtime to not sandbox cgroups
+#
+# Post-escape forensic artifacts to examine:
+#   /var/log/audit/audit.log - auditd namespace entries
+#   /var/log/syslog - kernel namespace messages
+#   Docker daemon log: journalctl -u docker

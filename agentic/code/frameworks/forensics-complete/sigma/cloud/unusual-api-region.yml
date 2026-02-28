@@ -1,0 +1,88 @@
+title: AWS API Calls from Unusual Geographic Region
+id: 6b3c5d7e-2f4a-6b8c-1d3e-5f6a7b8c9d0e
+status: stable
+description: Detects AWS API calls originating from regions that are unusual for the
+  account's normal operating pattern. Calls from unexpected regions may indicate use
+  of compromised credentials from a different geographic location than the legitimate
+  user, or an attacker using a VPN or proxy endpoint in an unexpected region.
+references:
+  - https://attack.mitre.org/techniques/T1078/
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-examples.html
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.initial_access
+  - attack.t1078
+  - attack.credential_access
+  - attack.t1078.004
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: '*'
+    # Regions that are commonly associated with attacker infrastructure or
+    # are unlikely to be used by legitimate users in most organizations.
+    # Adjust this list based on the organization's actual operating regions.
+    awsRegion:
+      - 'ap-east-1'
+      - 'af-south-1'
+      - 'me-south-1'
+      - 'eu-south-1'
+  filter_expected_services:
+    # Exclude automated/service-to-service calls that legitimately span regions
+    userIdentity.type: 'AWSService'
+  filter_replication:
+    # Exclude replication-related events
+    eventName:
+      - 'ReplicateObject'
+      - 'ReplicateDelete'
+      - 'ReplicateTags'
+  condition: selection and not filter_expected_services and not filter_replication
+falsepositives:
+  - Legitimate users traveling or working from an unexpected region
+  - New business expansion into a region not previously used
+  - Global services that automatically use nearest region
+  - VPN or corporate proxy endpoints in unexpected regions
+level: medium
+fields:
+  - eventTime
+  - awsRegion
+  - userIdentity.arn
+  - userIdentity.type
+  - eventName
+  - eventSource
+  - sourceIPAddress
+  - userAgent
+---
+# Tuning Instructions
+#
+# This rule REQUIRES tuning before deployment. The awsRegion list in the
+# detection section must be adjusted to match the organization's baseline:
+#
+# Step 1: Determine normal operating regions
+#   SELECT awsregion, count(*) as event_count
+#   FROM cloudtrail_logs
+#   WHERE eventtime > date_add('day', -90, now())
+#   GROUP BY awsregion
+#   ORDER BY event_count DESC;
+#
+# Step 2: Define the allowlist of expected regions based on Step 1 results
+#
+# Step 3: Update the awsRegion list to include only regions NOT in the allowlist
+#
+# Step 4: Add baseline exceptions for services that legitimately use global regions
+#
+# Detection Logic Note (Athena):
+#
+#   SELECT eventtime, awsregion, useridentity.arn, eventname, sourceipaddress
+#   FROM cloudtrail_logs
+#   WHERE awsregion NOT IN ('us-east-1', 'us-west-2', 'eu-west-1')  -- your normal regions
+#     AND useridentity.type != 'AWSService'
+#     AND eventtime > '2025-11-01'
+#   ORDER BY eventtime;
+#
+# Enrich source IP with geolocation to confirm the geographic anomaly:
+#
+#   curl -s "https://ipinfo.io/<sourceIPAddress>/json" | jq '{ip,city,country,org}'

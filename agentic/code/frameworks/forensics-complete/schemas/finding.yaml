@@ -1,0 +1,252 @@
+# Schema: Forensic Finding
+#
+# Defines the structure for a single finding in a forensic investigation report.
+# A finding represents a confirmed observation with security significance —
+# a compromise, a misconfiguration, a policy violation, or an anomaly.
+#
+# Each finding maps to a section in forensic-report.md and links to:
+# - Evidence items in the evidence manifest
+# - IOCs in the IOC register
+# - Remediation actions in the remediation plan
+# - ATT&CK techniques in the MITRE framework
+#
+# CVSS scoring reference: https://www.first.org/cvss/
+# ATT&CK reference:       https://attack.mitre.org/
+#
+# Required fields are marked "(required)".
+# Optional fields are marked "(optional)".
+
+---
+schema_version: "1.0.0"
+schema_name: finding
+
+# --- Identification (all required) ---
+
+id:
+  # (required) Unique finding identifier within this case.
+  # Format: F-NNN (e.g., F-001, F-012)
+  type: string
+  pattern: "^F-[0-9]{3,}$"
+  example: "F-001"
+
+case_id:
+  # (required) Case identifier linking this finding to an investigation.
+  type: string
+  example: "2026-02-27-001"
+
+title:
+  # (required) Short, descriptive title for the finding.
+  # Be specific: "Unauthorized SSH Key Added to root Account" not "SSH Issue"
+  # Aim for 5-10 words that clearly convey what was found.
+  type: string
+  example: "Unauthorized SSH Authorized Key Added to root Account"
+
+severity:
+  # (required) Severity classification of the finding.
+  #
+  # CRITICAL: Active compromise with ongoing attacker access or confirmed data exfiltration.
+  #           Requires immediate containment action.
+  #
+  # HIGH: Confirmed compromise with significant impact; attacker access terminated
+  #       but forensic evidence of unauthorized access is clear.
+  #
+  # MEDIUM: Evidence of attempted compromise or confirmed policy violation with
+  #         limited impact. No confirmed data exfiltration or persistent access.
+  #
+  # LOW: Misconfiguration, anomaly, or observation with no confirmed malicious
+  #      activity. Warrants remediation but not incident response.
+  type: string
+  allowed:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+    - LOW
+  example: "HIGH"
+
+description:
+  # (required) Full description of what was found, how it was discovered, and why it
+  # is significant. Written for a technical audience. Should be self-contained —
+  # a reader should understand the finding without consulting other documents.
+  # Minimum: 2-3 sentences. For CRITICAL/HIGH findings: 1-3 paragraphs.
+  type: string
+
+evidence:
+  # (required) Primary evidence supporting this finding.
+  # Include log excerpts, command output, or file content.
+  # For long evidence blocks, reference the evidence item and storage path.
+  # Example: "E-003: auth.log lines 1847-1903" or inline log excerpt.
+  type: string
+
+# --- ATT&CK mapping ---
+
+attack_technique:
+  # (optional) Primary MITRE ATT&CK technique ID.
+  # Format: T followed by 4 digits, optional period and 3-digit sub-technique.
+  type: string
+  pattern: "^T[0-9]{4}(\\.[0-9]{3})?$"
+  example: "T1098.004"
+  # T1098.004 = Account Manipulation: SSH Authorized Keys
+
+attack_tactic:
+  # (optional) ATT&CK tactic for the primary technique.
+  type: string
+  allowed:
+    - reconnaissance
+    - resource-development
+    - initial-access
+    - execution
+    - persistence
+    - privilege-escalation
+    - defense-evasion
+    - credential-access
+    - discovery
+    - lateral-movement
+    - collection
+    - command-and-control
+    - exfiltration
+    - impact
+  example: "persistence"
+
+additional_techniques:
+  # (optional) Additional ATT&CK techniques observed in connection with this finding.
+  # Use when a finding spans multiple techniques (e.g., an exploit that achieves
+  # both initial access and privilege escalation in one step).
+  type: array
+  items:
+    technique_id:
+      type: string
+      pattern: "^T[0-9]{4}(\\.[0-9]{3})?$"
+    tactic:
+      type: string
+    description:
+      type: string
+
+# --- Scope ---
+
+affected_systems:
+  # (optional) Systems confirmed or likely affected by this finding.
+  # If only the target system is affected, record the hostname here.
+  # If lateral movement is confirmed, list all affected systems.
+  type: array
+  items:
+    type: string
+  example:
+    - "web-prod-01.example.com"
+    - "db-prod-01.example.com"
+
+affected_accounts:
+  # (optional) User accounts compromised or involved in this finding.
+  type: array
+  items:
+    type: string
+  example:
+    - "root"
+    - "deploy"
+
+# --- Evidence references ---
+
+evidence_items:
+  # (optional) Evidence item IDs from the evidence manifest that support this finding.
+  type: array
+  items:
+    type: string
+    pattern: "^E-[0-9]{3,}$"
+  example:
+    - "E-005"
+    - "E-008"
+
+evidence_path:
+  # (optional) Storage path to the primary evidence file for this finding.
+  type: string
+  example: "/evidence/2026-02-27-001/filesystem/root_authorized_keys.txt"
+
+evidence_hash:
+  # (optional) SHA-256 hash of the primary evidence file to ensure integrity.
+  type: string
+  example: "e3b0c44298fc1c149afbf4c8996fb924..."
+
+ioc_references:
+  # (optional) IOC IDs from the IOC register associated with this finding.
+  type: array
+  items:
+    type: string
+    pattern: "^IOC-[0-9]{3,}$"
+  example:
+    - "IOC-002"
+    - "IOC-005"
+
+# --- Analysis ---
+
+analysis:
+  # (optional) Investigator's analysis: how the finding fits into the attack chain,
+  # what it reveals about threat actor intent, and how confident the assessment is.
+  # Distinguish between confirmed facts and inferences. Use hedging where appropriate:
+  # "confirmed", "likely", "possibly", "cannot determine from available evidence".
+  type: string
+
+impact:
+  # (optional) Actual or potential impact of this finding.
+  # Describe in concrete terms: data at risk, systems affected, business impact.
+  # Example: "Attacker had root-level persistent access to the production web server
+  # for approximately 14 days. All data processed by this server during that period
+  # must be considered potentially compromised."
+  type: string
+
+timeline_reference:
+  # (optional) Timestamp or time range when this finding's activity occurred.
+  # Reference the incident timeline for context.
+  type: string
+  example: "2026-02-13T03:14:00Z to 2026-02-27T08:57:22Z"
+
+# --- Remediation ---
+
+remediation:
+  # (optional) Summary of remediation actions for this finding.
+  # Full remediation detail belongs in remediation-plan.md.
+  # Reference the remediation plan action IDs here.
+  type: string
+  example: "Remove unauthorized SSH key (IA-001). Audit all authorized_keys files (ST-002). Rotate root credentials (IA-002)."
+
+remediation_actions:
+  # (optional) List of remediation plan action IDs addressing this finding.
+  type: array
+  items:
+    type: string
+  example:
+    - "IA-001"
+    - "IA-002"
+    - "ST-002"
+
+# --- Scoring ---
+
+cvss_score:
+  # (optional) CVSS v3.1 base score (0.0 - 10.0).
+  # Use for findings tied to CVEs or where a standardized severity score is needed.
+  # Compute using: https://www.first.org/cvss/calculator/3.1
+  type: number
+  minimum: 0.0
+  maximum: 10.0
+  example: 8.8
+
+cvss_vector:
+  # (optional) Full CVSS v3.1 vector string.
+  # Example: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+  type: string
+  example: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+
+# --- References ---
+
+references:
+  # (optional) External references relevant to this finding.
+  # Include CVE IDs, security advisories, ATT&CK pages, or vendor documentation.
+  type: array
+  items:
+    title:
+      type: string
+    url:
+      type: string
+  example:
+    - title: "ATT&CK T1098.004: Account Manipulation: SSH Authorized Keys"
+      url: "https://attack.mitre.org/techniques/T1098/004/"
+    - title: "NIST SP 800-92: Guide to Computer Security Log Management"
+      url: "https://csrc.nist.gov/publications/detail/sp/800-92/final"

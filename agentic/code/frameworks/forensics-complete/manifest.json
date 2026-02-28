@@ -1,0 +1,47 @@
+{
+  "id": "forensics-complete",
+  "type": "framework",
+  "name": "Forensics Complete",
+  "version": "1.0.0",
+  "description": "Digital forensics and incident response framework with target profiling, evidence acquisition, multi-source analysis, timeline reconstruction, and forensic reporting.",
+  "modeAliases": [
+    "forensics",
+    "dfir"
+  ],
+  "entry": {
+    "agents": "agents",
+    "commands": "commands",
+    "skills": "skills",
+    "templates": "templates",
+    "rules": "rules"
+  },
+  "workspace": {
+    "subdirs": [
+      "profiles",
+      "plans",
+      "evidence",
+      "findings",
+      "timelines",
+      "iocs",
+      "reports",
+      "sigma"
+    ]
+  },
+  "standards": [
+    "NIST SP 800-86",
+    "MITRE ATT&CK",
+    "Sigma Rules",
+    "OCSF",
+    "STIX 2.1",
+    "RFC 3227"
+  ],
+  "metadata": {
+    "created": "2026-02-27",
+    "last_updated": "2026-02-27",
+    "total_agents": 13,
+    "total_commands": 9,
+    "total_skills": 10,
+    "total_rules": 4,
+    "status": "active"
+  }
+}

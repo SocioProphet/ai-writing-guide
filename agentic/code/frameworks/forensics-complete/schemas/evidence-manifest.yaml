@@ -1,0 +1,195 @@
+# Schema: Evidence Collection Manifest
+#
+# Defines the structure for an evidence collection manifest.
+# Every piece of evidence collected during an investigation must have an entry here.
+# The manifest is the machine-readable companion to chain-of-custody.md.
+#
+# Evidence items are indexed by their ID (E-001, E-002, ...) and provide all
+# information needed to verify integrity, trace custody, and reproduce collection.
+#
+# Required fields are marked "(required)".
+# Optional fields are marked "(optional)".
+
+---
+schema_version: "1.0.0"
+schema_name: evidence-manifest
+
+# --- Case identification (all required) ---
+
+case_id:
+  # (required) Case identifier matching investigation-plan.yaml case_id.
+  type: string
+  example: "2026-02-27-001"
+
+target:
+  # (required) Hostname of the system from which evidence was collected.
+  type: string
+  example: "web-prod-01.example.com"
+
+collection_date:
+  # (required) Date evidence collection began. ISO 8601.
+  type: string
+  format: date
+  example: "2026-02-27"
+
+collector:
+  # (required) Full name of the person who performed evidence collection.
+  # For automated collection, use the script name and version.
+  type: string
+  example: "Jane Smith"
+
+# --- Optional manifest-level fields ---
+
+collection_start_time:
+  # (optional) Timestamp when evidence collection began. ISO 8601.
+  type: string
+  format: datetime
+  example: "2026-02-27T09:15:00Z"
+
+collection_end_time:
+  # (optional) Timestamp when evidence collection completed. ISO 8601.
+  type: string
+  format: datetime
+  example: "2026-02-27T11:42:00Z"
+
+collection_method:
+  # (optional) Overall collection methodology description.
+  type: string
+  example: "Live forensic collection using bash scripts on a running system. System was not taken offline prior to collection."
+
+storage_location:
+  # (optional) Primary storage path for collected evidence.
+  type: string
+  example: "/evidence/2026-02-27-001"
+
+storage_backup_location:
+  # (optional) Secondary or offsite backup location.
+  type: string
+  example: "s3://security-forensics-archive/2026-02-27-001"
+
+manifest_version:
+  # (optional) Version of this manifest document for change tracking.
+  type: string
+  default: "1.0"
+
+notes:
+  # (optional) General notes about the collection session.
+  type: string
+
+# --- Evidence items (required) ---
+
+items:
+  # (required) Array of all evidence items collected.
+  # Each item must be assigned a unique ID and never have its ID reused or reassigned.
+  type: array
+  minimum_length: 1
+  items:
+    id:
+      # (required) Unique evidence item identifier within this case.
+      # Format: E-NNN (e.g., E-001, E-002, E-047)
+      type: string
+      pattern: "^E-[0-9]{3,}$"
+      example: "E-001"
+
+    description:
+      # (required) Human-readable description of what this evidence item is.
+      # Be specific: "Process list captured at investigation start" not "processes"
+      type: string
+      example: "Process list snapshot captured at 09:15 UTC before any system changes"
+
+    source_path:
+      # (required) Origin path or system location of the evidence.
+      # For volatile data (processes, connections), use the target system context.
+      # For log files, include the full path on the target system.
+      type: string
+      example: "/proc (via ps auxf output on web-prod-01)"
+
+    hash_algorithm:
+      # (required) Algorithm used to compute the hash of the collected artifact.
+      type: string
+      allowed:
+        - SHA-256
+        - SHA-512
+        - SHA-1
+        - MD5
+      # Note: SHA-1 and MD5 are considered weak. Use SHA-256 or SHA-512 for new collections.
+      default: "SHA-256"
+
+    hash_value:
+      # (required) Hash digest of the collected evidence file.
+      # For SHA-256 this is a 64-character hex string.
+      # Record immediately at time of collection; do not compute retroactively.
+      type: string
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    collection_method:
+      # (required) How this specific item was collected.
+      # Be specific enough that another investigator could reproduce the collection.
+      type: string
+      example: "ps auxf > /evidence/2026-02-27-001/volatile/processes.txt"
+
+    integrity_verified:
+      # (required) Whether the hash has been verified after collection.
+      # Set to true only after running sha256sum -c and confirming match.
+      type: boolean
+      default: false
+
+    # --- Optional item fields ---
+
+    collected_at:
+      # (optional) Timestamp when this specific item was collected. ISO 8601.
+      type: string
+      format: datetime
+      example: "2026-02-27T09:15:32Z"
+
+    storage_path:
+      # (optional) Full path where this evidence item is stored.
+      type: string
+      example: "/evidence/2026-02-27-001/volatile/processes.txt"
+
+    size_bytes:
+      # (optional) File size of the collected artifact in bytes.
+      type: integer
+      example: 12847
+
+    category:
+      # (optional) Evidence category for organization and reporting.
+      type: string
+      allowed:
+        - volatile       # Process list, connections, ARP, loaded modules — lost on reboot
+        - logs           # System logs, auth logs, application logs
+        - filesystem     # Files, directories, metadata, timestamps
+        - network        # Packet captures, connection dumps
+        - memory         # Memory images or dumps
+        - configuration  # Config files, service definitions, cron jobs
+        - artifact       # Malware samples, dropped files, scripts
+        - credential     # SSH keys, password hashes, tokens (handle with care)
+        - container      # Container logs, images, filesystem layers
+      example: "volatile"
+
+    notes:
+      # (optional) Any additional notes about this evidence item:
+      # collection anomalies, access issues, or relationship to findings.
+      type: string
+
+    related_finding:
+      # (optional) Finding ID(s) in the forensic report that this evidence supports.
+      # Example: "F-001" or ["F-001", "F-003"]
+      type: string
+      example: "F-001"
+
+    custody_chain:
+      # (optional) Inline custody summary for this specific item.
+      # Full custody detail belongs in chain-of-custody.md.
+      # Record here only when an item has a notably different custody path than others.
+      type: array
+      items:
+        timestamp:
+          type: string
+          format: datetime
+        from:
+          type: string
+        to:
+          type: string
+        purpose:
+          type: string

@@ -1,0 +1,395 @@
+# Schema: Target System Profile
+#
+# Defines the structure for a target system profile used in forensic investigations.
+# This schema validates profile documents before they are consumed by investigation
+# plan generators and evidence collection scripts.
+#
+# STIX alignment: System information is modeled after STIX 2.1 infrastructure and
+# software observable objects where applicable.
+#
+# Required fields are marked with "(required)".
+# Optional fields are marked with "(optional)" and include a default or example.
+
+---
+schema_version: "1.0.0"
+schema_name: target-profile
+
+# --- Top-level required fields ---
+
+hostname:
+  # (required) The fully qualified or short hostname of the target system.
+  # Example: "web-prod-01.example.com" or "web-prod-01"
+  type: string
+  example: "web-prod-01.example.com"
+
+os:
+  # (required) Operating system name.
+  # Example: "Ubuntu", "Debian", "CentOS", "RHEL", "Amazon Linux"
+  type: string
+  example: "Ubuntu"
+
+os_version:
+  # (required) Operating system version string.
+  # Example: "22.04 LTS", "8.7", "2023"
+  type: string
+  example: "22.04 LTS"
+
+kernel:
+  # (required) Kernel version string as returned by `uname -r`.
+  # Example: "5.15.0-91-generic"
+  type: string
+  example: "5.15.0-91-generic"
+
+arch:
+  # (required) CPU architecture.
+  # Allowed values: x86_64, aarch64, armv7l, i686, s390x, ppc64le
+  type: string
+  allowed:
+    - x86_64
+    - aarch64
+    - armv7l
+    - i686
+    - s390x
+    - ppc64le
+  example: "x86_64"
+
+type:
+  # (required) Classification of the system.
+  # Allowed values: bare-metal, vm, container-host, cloud-instance, embedded
+  type: string
+  allowed:
+    - bare-metal
+    - vm
+    - container-host
+    - cloud-instance
+    - embedded
+  example: "vm"
+
+# --- Top-level optional fields ---
+
+environment:
+  # (optional) Deployment environment.
+  # Allowed values: production, staging, development, testing, lab
+  type: string
+  allowed:
+    - production
+    - staging
+    - development
+    - testing
+    - lab
+  example: "production"
+
+location:
+  # (optional) Physical or cloud location descriptor.
+  # Example: "us-east-1", "DC2-Rack-14", "Azure East US"
+  type: string
+  example: "us-east-1"
+
+uptime:
+  # (optional) System uptime at time of investigation capture.
+  # Free-form string as returned by `uptime` or `uptime -p`.
+  # Example: "up 47 days, 3 hours, 21 minutes"
+  type: string
+  example: "up 47 days, 3 hours, 21 minutes"
+
+system_owner:
+  # (optional) Team or individual responsible for the system.
+  type: string
+  example: "Platform Engineering"
+
+support_contact:
+  # (optional) Contact email or ticket queue for system support.
+  type: string
+  example: "platform-eng@example.com"
+
+# --- Users ---
+
+users:
+  # (optional) Array of user accounts with interactive shell access.
+  # Populate from: grep -v '/nologin\|/false' /etc/passwd
+  type: array
+  items:
+    username:
+      # (required within item) Login name.
+      type: string
+    uid:
+      # (required within item) Unix user ID.
+      type: integer
+    gid:
+      # (required within item) Primary group ID.
+      type: integer
+    shell:
+      # (required within item) Login shell path.
+      type: string
+      example: "/bin/bash"
+    groups:
+      # (optional) List of supplementary group names.
+      type: array
+      items:
+        type: string
+    last_login:
+      # (optional) Timestamp of last login. ISO 8601 or "Never".
+      type: string
+      example: "2026-01-15T14:23:00Z"
+    notes:
+      # (optional) Any notable information about this account.
+      type: string
+
+# --- Services ---
+
+services:
+  # (optional) Array of expected network services and listening ports.
+  # Populate from: ss -tlnpu
+  # Any service not in this list is an anomaly requiring investigation.
+  type: array
+  items:
+    name:
+      # (required within item) Service or process name.
+      type: string
+      example: "sshd"
+    port:
+      # (required within item) TCP or UDP port number.
+      type: integer
+      minimum: 1
+      maximum: 65535
+    protocol:
+      # (required within item) Transport protocol.
+      type: string
+      allowed:
+        - tcp
+        - udp
+        - tcp6
+        - udp6
+    bind:
+      # (optional) Bind address. Defaults to "0.0.0.0" if not specified.
+      # "127.0.0.1" indicates localhost-only — note if exposed externally.
+      type: string
+      example: "0.0.0.0"
+    expected:
+      # (optional) Whether this service is expected on the target.
+      # Set to false to pre-flag known anomalies.
+      type: boolean
+      default: true
+    notes:
+      # (optional) Additional context about this service.
+      type: string
+
+# --- Security Stack ---
+
+security_stack:
+  # (optional) Security tools deployed on the target system.
+  type: object
+  properties:
+    firewall:
+      # (optional) Firewall tool name.
+      # Example: "iptables", "nftables", "ufw", "firewalld"
+      type: string
+    firewall_config:
+      # (optional) Path to firewall configuration file.
+      type: string
+    ids:
+      # (optional) IDS/IPS tool name.
+      # Example: "Fail2ban", "Suricata", "OSSEC", "Wazuh"
+      type: string
+    audit_framework:
+      # (optional) Audit framework.
+      # Example: "auditd", "sysdig", "eBPF"
+      type: string
+    log_aggregation:
+      # (optional) Log aggregation tool.
+      # Example: "rsyslog", "journald", "Filebeat"
+      type: string
+    mac:
+      # (optional) Mandatory access control framework.
+      # Example: "SELinux", "AppArmor", "none"
+      type: string
+    mac_mode:
+      # (optional) MAC enforcement mode.
+      # Allowed values: enforcing, permissive, disabled
+      type: string
+      allowed:
+        - enforcing
+        - permissive
+        - disabled
+    av_edr:
+      # (optional) Antivirus or EDR tool name.
+      type: string
+
+# --- Network ---
+
+network:
+  # (optional) Network baseline for the target system.
+  type: object
+  properties:
+    interfaces:
+      # (optional) Array of network interfaces.
+      type: array
+      items:
+        name:
+          type: string
+          example: "eth0"
+        ip:
+          type: string
+          example: "10.0.1.25"
+        mac:
+          type: string
+          example: "52:54:00:ab:cd:ef"
+        role:
+          # (optional) Role description for this interface.
+          type: string
+          example: "primary"
+    nameservers:
+      # (optional) Configured DNS nameservers.
+      type: array
+      items:
+        type: string
+        example: "8.8.8.8"
+    search_domains:
+      # (optional) DNS search domain list.
+      type: array
+      items:
+        type: string
+    expected_outbound:
+      # (optional) Expected outbound connections from this system.
+      type: array
+      items:
+        destination:
+          type: string
+        port:
+          type: integer
+        protocol:
+          type: string
+        purpose:
+          type: string
+
+# --- Containers ---
+
+containers:
+  # (optional) Docker / container environment details.
+  # Omit this section entirely if containers are not present.
+  type: object
+  properties:
+    docker_version:
+      type: string
+      example: "24.0.7"
+    compose_version:
+      type: string
+      example: "2.21.0"
+    docker_socket:
+      # (optional) Path to Docker socket. Default: /var/run/docker.sock
+      type: string
+      default: "/var/run/docker.sock"
+    rootless:
+      # (optional) Whether Docker runs in rootless mode.
+      type: boolean
+      default: false
+    baseline_containers:
+      # (optional) Array of expected running containers.
+      type: array
+      items:
+        name:
+          type: string
+        image:
+          type: string
+        ports:
+          type: array
+          items:
+            type: string
+        privileged:
+          type: boolean
+          default: false
+        notes:
+          type: string
+
+# --- Known Concerns ---
+
+known_concerns:
+  # (optional) Pre-identified issues or anomalies documented before the investigation.
+  # These are baseline deviations that are known and accepted or pending remediation.
+  type: array
+  items:
+    id:
+      # (required within item) Unique concern identifier, e.g., KC-001
+      type: string
+    description:
+      # (required within item) Description of the known concern.
+      type: string
+    severity:
+      # (optional) Severity of the known concern.
+      type: string
+      allowed:
+        - CRITICAL
+        - HIGH
+        - MEDIUM
+        - LOW
+    date_noted:
+      # (optional) When the concern was first documented. ISO 8601.
+      type: string
+      example: "2026-01-01"
+    status:
+      # (optional) Current status of the concern.
+      type: string
+      allowed:
+        - open
+        - in-progress
+        - accepted-risk
+        - resolved
+
+# --- Investigation Scope Configuration ---
+
+investigation_scope:
+  # (optional) Configurable thresholds and options for investigation tooling.
+  type: object
+  properties:
+    case_id:
+      type: string
+    log_lookback_days:
+      # Number of days of logs to analyze. Default: 30
+      type: integer
+      default: 30
+    timeline_window_days:
+      # Days before incident to include in filesystem timeline. Default: 7
+      type: integer
+      default: 7
+    large_file_threshold_mb:
+      # Flag files larger than this size in unexpected locations. Default: 100
+      type: integer
+      default: 100
+    suid_scan_include_known_good:
+      # Include known-good SUID binaries in scan output. Default: false
+      type: boolean
+      default: false
+    cron_scan_system:
+      # Include system crontabs in cron sweep. Default: true
+      type: boolean
+      default: true
+    connection_count_alert_threshold:
+      # Alert when a single remote IP has this many connections. Default: 50
+      type: integer
+      default: 50
+    failed_login_threshold:
+      # Failed login count before flagging an account. Default: 10
+      type: integer
+      default: 10
+    flag_memfd_processes:
+      # Flag processes with no associated binary on disk. Default: true
+      type: boolean
+      default: true
+    docker_filesystem_scan:
+      # Scan container filesystems during investigation. Default: false
+      type: boolean
+      default: false
+    excluded_paths:
+      # Paths excluded from filesystem scans. Always includes /proc, /sys, /dev.
+      type: array
+      items:
+        type: string
+      default:
+        - /proc
+        - /sys
+        - /dev
+    additional_log_files:
+      # Extra log files to parse beyond system defaults.
+      type: array
+      items:
+        type: string

@@ -1,0 +1,79 @@
+title: Privileged Container Created or Executed
+id: 5e9f2a3b-8c1d-4e7f-9a2b-4c5d6e7f8a9b
+status: stable
+description: Detects the creation or execution of Docker containers with the --privileged
+  flag or equivalent security settings disabled. Privileged containers have access to
+  all host devices and can trivially escape container isolation to compromise the host.
+references:
+  - https://attack.mitre.org/techniques/T1611/
+  - https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities
+  - https://bishopfox.com/blog/docker-in-production-an-update-on-privilege-escalation
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.privilege_escalation
+  - attack.t1611
+  - attack.escape_to_host
+logsource:
+  product: docker
+detection:
+  selection_privileged:
+    event_type:
+      - 'container.create'
+      - 'container.start'
+    container_privileged: true
+  selection_cap_add:
+    event_type:
+      - 'container.create'
+      - 'container.start'
+    container_cap_add|contains:
+      - 'SYS_ADMIN'
+      - 'SYS_PTRACE'
+      - 'NET_ADMIN'
+      - 'ALL'
+  selection_security_opt:
+    event_type:
+      - 'container.create'
+      - 'container.start'
+    container_security_opt|contains:
+      - 'seccomp=unconfined'
+      - 'apparmor=unconfined'
+  condition: selection_privileged or selection_cap_add or selection_security_opt
+falsepositives:
+  - Legitimate infrastructure containers that require host access (monitoring agents,
+    network tools, storage drivers)
+  - Development and CI environments where container security is intentionally relaxed
+  - Kubernetes node-level DaemonSets that require privileged access
+level: high
+fields:
+  - container_id
+  - container_name
+  - container_image
+  - container_privileged
+  - container_cap_add
+  - container_security_opt
+  - user
+  - timestamp
+---
+# Detection Logic Note
+#
+# Check for privileged containers on a live Docker host:
+#
+#   # List all running containers with their security configuration
+#   docker inspect $(docker ps -q) | \
+#     jq '.[] | {Name: .Name, Privileged: .HostConfig.Privileged, Caps: .HostConfig.CapAdd}'
+#
+#   # Find privileged containers specifically
+#   docker ps -q | xargs docker inspect | \
+#     jq '.[] | select(.HostConfig.Privileged == true) | .Name'
+#
+# In Kubernetes (check pod security context):
+#
+#   kubectl get pods -A -o json | \
+#     jq '.items[] | select(.spec.containers[].securityContext.privileged == true) |
+#         {namespace: .metadata.namespace, name: .metadata.name}'
+#
+# A privileged container can access /dev/sda, /dev/mem, and all other
+# host devices. Escape to host is trivial:
+#   mount /dev/sda1 /mnt && chroot /mnt

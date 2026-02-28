@@ -1,0 +1,220 @@
+# Schema: Investigation Plan
+#
+# Defines the structure for a forensic investigation plan document.
+# An investigation plan is created at the start of each investigation and
+# updated as phases complete. It drives the evidence collection commands
+# and links to the target profile for system-specific parameterization.
+#
+# Required fields are marked "(required)".
+# Optional fields are marked "(optional)".
+
+---
+schema_version: "1.0.0"
+schema_name: investigation-plan
+
+# --- Required fields ---
+
+case_id:
+  # (required) Unique case identifier. Used to name evidence directories,
+  # cross-reference chain-of-custody, and link all case artifacts.
+  # Recommended format: YYYY-MM-DD-NNN (e.g., "2026-02-27-001")
+  type: string
+  pattern: "^[A-Za-z0-9\\-_]+$"
+  example: "2026-02-27-001"
+
+target:
+  # (required) Hostname of the system under investigation.
+  # Must match the hostname field in the associated target profile.
+  type: string
+  example: "web-prod-01.example.com"
+
+investigator:
+  # (required) Full name of the lead investigator.
+  type: string
+  example: "Jane Smith"
+
+date:
+  # (required) Date the investigation plan was created. ISO 8601.
+  type: string
+  format: date
+  example: "2026-02-27"
+
+scope:
+  # (required) Description of the investigation scope: what is being investigated,
+  # what triggered the investigation, and any explicit out-of-scope areas.
+  type: string
+  example: "Investigate suspected unauthorized access following an anomalous SSH login alert."
+
+# --- Optional fields ---
+
+case_title:
+  # (optional) Human-readable case title for reports and tickets.
+  type: string
+  example: "Unauthorized SSH Access - web-prod-01 - 2026-02-27"
+
+target_ip:
+  # (optional) Primary IP address of the target system.
+  type: string
+  example: "10.0.1.25"
+
+authorized_by:
+  # (optional) Name of the person or role that authorized the investigation.
+  type: string
+  example: "CISO Office"
+
+authorization_ref:
+  # (optional) Ticket number, email reference, or document ID authorizing investigation.
+  type: string
+  example: "SEC-2026-0042"
+
+classification:
+  # (optional) Document classification level.
+  type: string
+  allowed:
+    - PUBLIC
+    - INTERNAL
+    - CONFIDENTIAL
+    - RESTRICTED
+  default: "INTERNAL"
+
+target_profile_path:
+  # (optional) Path to the associated target profile document.
+  type: string
+  example: ".aiwg/forensics/2026-02-27-001/target-profile.md"
+
+escalation_contact:
+  # (optional) Name and contact information for escalation if red flags are found.
+  type: string
+  example: "security-oncall@example.com"
+
+escalation_channel:
+  # (optional) Communication channel for escalation (e.g., Slack channel, pager alias).
+  type: string
+  example: "#security-incidents"
+
+# --- Phases ---
+
+phases:
+  # (optional) Array of investigation phases with status tracking.
+  # Phases map to the Investigation Phases table in investigation-plan.md.
+  type: array
+  items:
+    number:
+      # (required within item) Phase sequence number (1-based).
+      type: integer
+    name:
+      # (required within item) Phase name.
+      type: string
+      example: "Initial Triage"
+    estimated_minutes:
+      # (optional) Estimated time to complete this phase, in minutes.
+      type: integer
+      example: 30
+    status:
+      # (optional) Current phase status.
+      type: string
+      allowed:
+        - not-started
+        - in-progress
+        - complete
+        - skipped
+      default: "not-started"
+    actual_minutes:
+      # (optional) Actual time taken, recorded after completion.
+      type: integer
+    notes:
+      # (optional) Phase-specific notes or findings summary.
+      type: string
+
+# --- Commands ---
+
+commands:
+  # (optional) Map of phase names to parameterized command sets.
+  # Commands are derived from the target profile and investigation scope.
+  # Keys correspond to phase names; values are arrays of command strings.
+  type: object
+  additional_properties:
+    type: array
+    items:
+      type: string
+
+# --- Red Flags ---
+
+red_flags:
+  # (optional) Array of conditions that trigger immediate escalation.
+  type: array
+  items:
+    description:
+      # (required within item) Description of the red flag condition.
+      type: string
+    action:
+      # (required within item) Immediate action to take if detected.
+      type: string
+    indicator:
+      # (optional) Specific IOC, pattern, or file that constitutes this red flag.
+      type: string
+
+# --- Evidence Plan ---
+
+evidence_plan:
+  # (optional) Evidence collection and preservation configuration.
+  type: object
+  properties:
+    storage_path:
+      # Base path for evidence storage.
+      type: string
+      example: "/evidence"
+    retention_period:
+      # How long to retain evidence after case close.
+      type: string
+      example: "90 days"
+    hash_algorithm:
+      # Hash algorithm for evidence integrity verification.
+      type: string
+      allowed:
+        - SHA-256
+        - SHA-512
+        - SHA-1
+      default: "SHA-256"
+    types:
+      # Types of evidence to collect.
+      type: array
+      items:
+        category:
+          type: string
+          example: "volatile"
+        description:
+          type: string
+        storage_subdir:
+          type: string
+
+# --- Reporting ---
+
+reporting:
+  # (optional) Reporting requirements and deadlines.
+  type: object
+  properties:
+    preliminary_recipient:
+      type: string
+    draft_due_date:
+      type: string
+      format: date
+    final_due_date:
+      type: string
+      format: date
+    report_format:
+      type: string
+      allowed:
+        - markdown
+        - pdf
+        - html
+        - docx
+      default: "markdown"
+    recipients:
+      type: array
+      items:
+        type: string
+    ioc_recipients:
+      type: array
+      items:
+        type: string

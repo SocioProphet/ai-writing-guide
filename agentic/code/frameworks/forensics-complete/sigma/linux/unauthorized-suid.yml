@@ -1,0 +1,72 @@
+title: Unauthorized SUID Binary Detected
+id: 3b8e2f1a-7c5d-4a9b-8e6f-1d2c3a4b5e6f
+status: stable
+description: Detects the creation or modification of SUID or SGID binaries that do not
+  belong to any installed package. Unpackaged SUID binaries are a strong indicator of
+  privilege escalation backdoors planted by an attacker.
+references:
+  - https://attack.mitre.org/techniques/T1548/001/
+  - https://gtfobins.github.io/
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.privilege_escalation
+  - attack.t1548.001
+  - attack.persistence
+logsource:
+  product: linux
+  category: file_change
+detection:
+  selection:
+    file_permissions|contains:
+      - 'u+s'
+      - 'g+s'
+    file_path|startswith:
+      - '/tmp/'
+      - '/var/tmp/'
+      - '/dev/shm/'
+      - '/home/'
+      - '/opt/'
+      - '/usr/local/bin/'
+      - '/usr/local/sbin/'
+  filter_package_managed:
+    # Exclude paths that are routinely managed by the package manager
+    file_path|startswith:
+      - '/usr/bin/'
+      - '/usr/sbin/'
+      - '/bin/'
+      - '/sbin/'
+  condition: selection and not filter_package_managed
+falsepositives:
+  - Custom in-house applications installed outside the package manager
+  - Software installed from source in /usr/local/ with SUID requirement
+  - Container environments where package manager metadata is unavailable
+level: high
+fields:
+  - file_path
+  - file_permissions
+  - file_owner
+  - file_md5
+  - file_sha256
+  - process_name
+  - timestamp
+---
+# Detection Logic Note
+#
+# Verify unpackaged SUID binaries with the following commands:
+#
+#   # Find all SUID/SGID binaries
+#   find / -perm /6000 -type f 2>/dev/null > /tmp/suid-all.txt
+#
+#   # Check each against dpkg (Debian/Ubuntu)
+#   while read f; do
+#     dpkg -S "$f" 2>&1 | grep -q "not found" && echo "UNPACKAGED: $f"
+#   done < /tmp/suid-all.txt
+#
+#   # Check each against rpm (RHEL/CentOS)
+#   while read f; do
+#     rpm -qf "$f" 2>&1 | grep -q "not owned" && echo "UNPACKAGED: $f"
+#   done < /tmp/suid-all.txt
+#
+# See rules/red-flag-escalation.md Rule 3 for escalation requirements.

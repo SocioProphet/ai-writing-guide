@@ -1,0 +1,67 @@
+title: Process Running from Deleted Executable
+id: 2c7d8e3f-4b1a-5c9d-8f2e-3a4b5c6d7e8f
+status: stable
+description: Detects processes that are executing from a binary that no longer exists
+  on disk. This is a strong indicator of active attacker presence — a common technique
+  is to upload malware, execute it, then delete the file from disk to hinder forensic
+  analysis. The process continues running from kernel page cache.
+references:
+  - https://attack.mitre.org/techniques/T1070/004/
+  - https://attack.mitre.org/techniques/T1059/
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.defense_evasion
+  - attack.t1070.004
+  - attack.execution
+  - attack.t1059
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection:
+    process_executable|endswith: ' (deleted)'
+  filter_expected:
+    # Some software intentionally uses this pattern for self-updating
+    process_name:
+      - 'update-agent'
+      - 'apt'
+      - 'dpkg'
+  condition: selection and not filter_expected
+falsepositives:
+  - Software update processes that replace their own binary while running
+  - Package managers performing in-place upgrades
+  - Some container runtimes during image layer operations
+level: critical
+fields:
+  - process_pid
+  - process_name
+  - process_executable
+  - process_cmdline
+  - process_parent_name
+  - user
+  - timestamp
+---
+# Detection Logic Note
+#
+# Direct detection command:
+#
+#   ls -la /proc/*/exe 2>/dev/null | grep '(deleted)'
+#
+# To recover the deleted binary from kernel page cache (do this FIRST):
+#
+#   PID=<pid of deleted process>
+#   cp /proc/$PID/exe /workspace/evidence/deleted-binary-$PID
+#   sha256sum /workspace/evidence/deleted-binary-$PID
+#
+# To examine the process before any containment action:
+#
+#   cat /proc/$PID/cmdline | tr '\0' ' '
+#   cat /proc/$PID/environ | tr '\0' '\n'
+#   ls -la /proc/$PID/fd/
+#   ss -tunap | grep $PID
+#
+# See rules/red-flag-escalation.md Rule 2 for escalation requirements.
+# See rules/non-destructive.md Rule 3 — do not kill this process
+# before capturing evidence from /proc/$PID.

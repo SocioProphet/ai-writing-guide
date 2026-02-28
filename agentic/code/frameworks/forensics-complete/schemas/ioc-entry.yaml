@@ -1,0 +1,242 @@
+# Schema: Indicator of Compromise (IOC) Entry
+#
+# Defines the structure for a single IOC entry aligned with STIX 2.1
+# Cyber Observable Objects (SCOs). Each entry represents one distinct
+# indicator observed or inferred during an investigation.
+#
+# STIX 2.1 reference: https://docs.oasis-open.org/cti/stix/v2.1/os/stix-v2.1-os.html
+# ATT&CK reference:   https://attack.mitre.org/
+#
+# Required fields are marked "(required)".
+# Optional fields are marked "(optional)".
+
+---
+schema_version: "1.0.0"
+schema_name: ioc-entry
+
+# --- Identification ---
+
+id:
+  # (required) Unique IOC identifier within the case.
+  # Format: IOC-NNN (e.g., IOC-001, IOC-042)
+  type: string
+  pattern: "^IOC-[0-9]{3,}$"
+  example: "IOC-001"
+
+case_id:
+  # (required) Case identifier linking this IOC to an investigation.
+  type: string
+  example: "2026-02-27-001"
+
+# --- Observable ---
+
+type:
+  # (required) IOC observable type, aligned with STIX 2.1 SCO type names.
+  # Select the most specific type that applies.
+  type: string
+  allowed:
+    - ipv4-addr          # IPv4 address (e.g., "185.220.101.42")
+    - ipv6-addr          # IPv6 address
+    - domain-name        # DNS domain (e.g., "malware.example.net")
+    - url                # Full URL (e.g., "http://185.220.101.42/shell.php")
+    - file               # File identified by path, name, or hash
+    - email-addr         # Email address used by threat actor
+    - user-account       # User account name or UID
+    - process            # Process name, PID, or command line pattern
+    - network-traffic    # Specific connection pattern (src/dst/port combination)
+    - windows-registry-key  # Windows registry key path
+    - artifact           # Raw bytes, encoded content, or binary pattern
+    - autonomous-system  # BGP autonomous system number
+    - mac-addr           # MAC address
+  example: "ipv4-addr"
+
+value:
+  # (required) The observable value.
+  # Format depends on type:
+  #   ipv4-addr:     "185.220.101.42"
+  #   domain-name:   "c2.malware-example.net"
+  #   url:           "http://185.220.101.42/shell.php"
+  #   file:          "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  #                  or "/tmp/.hidden/backdoor" for path-based
+  #   email-addr:    "attacker@protonmail.com"
+  #   user-account:  "backdoor_user" or "uid:1337"
+  #   process:       "nc -e /bin/bash" or process name
+  #   mac-addr:      "00:11:22:33:44:55"
+  type: string
+  example: "185.220.101.42"
+
+context:
+  # (required) Explanation of where and how this IOC was observed.
+  # Describe the log source, file, or artifact and what the IOC's presence indicates.
+  # Example: "Source IP observed in SSH authentication logs making 847 failed login
+  #           attempts against root over 3 minutes before a successful login."
+  type: string
+
+# --- Temporal ---
+
+first_seen:
+  # (optional) Earliest timestamp this IOC was observed in evidence. ISO 8601.
+  type: string
+  format: datetime
+  example: "2026-02-25T03:14:00Z"
+
+last_seen:
+  # (optional) Latest timestamp this IOC was observed in evidence. ISO 8601.
+  type: string
+  format: datetime
+  example: "2026-02-27T08:57:22Z"
+
+# --- Assessment ---
+
+confidence:
+  # (required) Confidence that this value is malicious and not a false positive.
+  # high:   Directly observed in evidence; corroborated by multiple independent sources.
+  # medium: Observed but admits benign explanation; or confirmed by a single source.
+  # low:    Inferred or circumstantial; requires additional corroboration.
+  type: string
+  allowed:
+    - high
+    - medium
+    - low
+  example: "high"
+
+source:
+  # (optional) The evidence source from which this IOC was extracted.
+  # Reference an evidence item ID if applicable (e.g., "E-003: auth.log").
+  type: string
+  example: "E-003: /var/log/auth.log"
+
+# --- STIX alignment ---
+
+stix_type:
+  # (optional) The STIX 2.1 Cyber Observable Object type name.
+  # This is the canonical STIX SCO type for tooling integration.
+  # Often matches `type` directly but may differ for complex observables.
+  type: string
+  example: "ipv4-addr"
+  # Common mappings:
+  #   ipv4-addr      -> ipv4-addr
+  #   domain-name    -> domain-name
+  #   url            -> url
+  #   file (hash)    -> file with hashes property
+  #   file (path)    -> file with name property
+  #   email-addr     -> email-addr
+  #   user-account   -> user-account
+  #   process        -> process
+
+stix_id:
+  # (optional) Full STIX 2.1 object ID if this IOC has been formalized in a STIX bundle.
+  # Format: "{type}--{UUID4}"
+  type: string
+  example: "ipv4-addr--a440da74-7e46-4e33-bd7a-c0f8b3addf5f"
+
+# --- ATT&CK ---
+
+attack_technique:
+  # (optional) MITRE ATT&CK technique or sub-technique ID associated with this IOC.
+  # Format: T followed by 4 digits, optional period and 3-digit sub-technique.
+  # Example: "T1078" (Valid Accounts) or "T1078.001" (Default Accounts)
+  type: string
+  pattern: "^T[0-9]{4}(\\.[0-9]{3})?$"
+  example: "T1110.001"
+
+attack_tactic:
+  # (optional) MITRE ATT&CK tactic associated with this IOC.
+  type: string
+  allowed:
+    - reconnaissance
+    - resource-development
+    - initial-access
+    - execution
+    - persistence
+    - privilege-escalation
+    - defense-evasion
+    - credential-access
+    - discovery
+    - lateral-movement
+    - collection
+    - command-and-control
+    - exfiltration
+    - impact
+  example: "credential-access"
+
+# --- Enrichment ---
+
+enrichment:
+  # (optional) Results from threat intelligence enrichment queries.
+  type: object
+  properties:
+    virustotal:
+      # (optional) VirusTotal lookup results summary.
+      type: object
+      properties:
+        malicious_count:
+          # Number of VT engines reporting this value as malicious.
+          type: integer
+        total_engines:
+          type: integer
+        permalink:
+          type: string
+        queried_at:
+          type: string
+          format: datetime
+    abuseipdb:
+      # (optional) AbuseIPDB results (IP addresses only).
+      type: object
+      properties:
+        abuse_confidence_score:
+          # AbuseIPDB confidence score 0-100.
+          type: integer
+          minimum: 0
+          maximum: 100
+        total_reports:
+          type: integer
+        last_reported_at:
+          type: string
+          format: datetime
+    shodan:
+      # (optional) Shodan host information summary (IP addresses only).
+      type: object
+      properties:
+        org:
+          type: string
+        isp:
+          type: string
+        country:
+          type: string
+        ports:
+          type: array
+          items:
+            type: integer
+        tags:
+          type: array
+          items:
+            type: string
+    threat_intel_feeds:
+      # (optional) Matches in threat intelligence feeds.
+      type: array
+      items:
+        feed_name:
+          type: string
+          example: "Tor Exit Nodes"
+        match:
+          type: boolean
+        details:
+          type: string
+    notes:
+      # (optional) Analyst notes from enrichment review.
+      type: string
+
+# --- Detection ---
+
+detection_rules:
+  # (optional) Sigma rules or other detection content covering this IOC.
+  type: array
+  items:
+    rule_id:
+      type: string
+    rule_file:
+      type: string
+    platform:
+      type: string
+      example: "SIEM"

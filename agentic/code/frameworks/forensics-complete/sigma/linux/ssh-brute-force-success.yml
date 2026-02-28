@@ -1,0 +1,55 @@
+title: SSH Brute Force Success
+id: 7a3f9c1e-2d4b-4e8a-b6f5-0c9d8e1a2b3c
+status: stable
+description: Detects IP addresses that had failed SSH login attempts followed by successful
+  authentication from the same source IP, indicating a brute force attack that succeeded.
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+  - https://www.sans.org/blog/finding-the-root-cause-of-an-ssh-brute-force-attack/
+author: forensics-complete
+date: 2025-11-14
+modified: 2025-11-14
+tags:
+  - attack.credential_access
+  - attack.t1110.001
+  - attack.persistence
+  - attack.t1078
+logsource:
+  product: linux
+  service: auth
+detection:
+  selection_failed:
+    auth_event: 'Failed password'
+  selection_success:
+    auth_event:
+      - 'Accepted password'
+      - 'Accepted publickey'
+  timeframe: 24h
+  condition: selection_failed and selection_success | same src_ip within timeframe
+falsepositives:
+  - Legitimate users who mistype their password before successfully authenticating
+  - Password manager rotation followed by correct authentication
+  - Automated provisioning systems with retry logic
+level: high
+fields:
+  - src_ip
+  - user
+  - auth_method
+  - timestamp
+---
+# Detection Logic Note
+#
+# This rule requires correlation across log entries. The following commands
+# implement the detection logic manually when a SIEM is not available:
+#
+#   # Extract failed login IPs
+#   grep "Failed password" /var/log/auth.log | awk '{print $11}' | sort -u > /tmp/failed.txt
+#
+#   # Extract successful login IPs
+#   grep "Accepted" /var/log/auth.log | awk '{print $11}' | sort -u > /tmp/success.txt
+#
+#   # Find IPs in both
+#   comm -12 <(sort /tmp/failed.txt) <(sort /tmp/success.txt)
+#
+# A result from the above commands indicates brute force success.
+# Apply red-flag-escalation.md procedures when this condition is confirmed.

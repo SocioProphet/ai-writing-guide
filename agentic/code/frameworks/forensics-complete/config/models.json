@@ -1,0 +1,64 @@
+{
+  "framework": "forensics-complete",
+  "version": "1.0.0",
+  "description": "Model recommendations for forensics agents by provider",
+  "defaults": {
+    "claude": "sonnet",
+    "openai": "codex-mini-latest",
+    "gemini": "gemini-2.5-pro"
+  },
+  "agents": {
+    "recon-agent": {
+      "claude": "sonnet",
+      "rationale": "System profiling requires moderate reasoning and tool use"
+    },
+    "triage-agent": {
+      "claude": "sonnet",
+      "rationale": "Quick triage needs fast, accurate analysis of volatile data"
+    },
+    "acquisition-agent": {
+      "claude": "sonnet",
+      "rationale": "Evidence collection follows structured procedures"
+    },
+    "log-analyst": {
+      "claude": "sonnet",
+      "rationale": "Log analysis requires pattern matching and anomaly detection"
+    },
+    "persistence-hunter": {
+      "claude": "sonnet",
+      "rationale": "Persistence detection requires systematic sweep methodology"
+    },
+    "container-analyst": {
+      "claude": "sonnet",
+      "rationale": "Container forensics requires Docker/K8s domain knowledge"
+    },
+    "network-analyst": {
+      "claude": "sonnet",
+      "rationale": "Network analysis requires protocol understanding and C2 detection patterns"
+    },
+    "memory-analyst": {
+      "claude": "opus",
+      "rationale": "Memory forensics requires deep reasoning for complex artifact interpretation"
+    },
+    "cloud-analyst": {
+      "claude": "sonnet",
+      "rationale": "Cloud forensics requires multi-provider API knowledge"
+    },
+    "timeline-builder": {
+      "claude": "opus",
+      "rationale": "Timeline correlation requires complex multi-source reasoning"
+    },
+    "ioc-analyst": {
+      "claude": "sonnet",
+      "rationale": "IOC extraction and enrichment follows structured patterns"
+    },
+    "reporting-agent": {
+      "claude": "sonnet",
+      "rationale": "Report generation requires clear technical writing"
+    },
+    "forensics-orchestrator": {
+      "claude": "opus",
+      "rationale": "Orchestration requires complex planning and multi-agent coordination"
+    }
+  }
+}

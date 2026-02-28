@@ -1,0 +1,141 @@
+{
+  "name": "forensics-complete-commands",
+  "version": "1.0.0",
+  "description": "Slash commands for digital forensics and incident response",
+  "framework": "forensics-complete",
+  "commands": [
+    {
+      "name": "forensics-profile",
+      "trigger": "/forensics-profile",
+      "file": "forensics-profile.md",
+      "category": "forensics-reconnaissance",
+      "description": "Build target system profile via SSH or cloud API enumeration",
+      "agent": "recon-agent",
+      "example": "/forensics-profile ssh://user@host:port"
+    },
+    {
+      "name": "forensics-triage",
+      "trigger": "/forensics-triage",
+      "file": "forensics-triage.md",
+      "category": "forensics-triage",
+      "description": "Quick triage investigation following RFC 3227 volatility order",
+      "agent": "triage-agent",
+      "example": "/forensics-triage ssh://user@host:port"
+    },
+    {
+      "name": "forensics-investigate",
+      "trigger": "/forensics-investigate",
+      "file": "forensics-investigate.md",
+      "category": "forensics-investigation",
+      "description": "Full multi-agent investigation workflow",
+      "agent": "forensics-orchestrator",
+      "example": "/forensics-investigate ssh://user@host:port --scope full"
+    },
+    {
+      "name": "forensics-acquire",
+      "trigger": "/forensics-acquire",
+      "file": "forensics-acquire.md",
+      "category": "forensics-acquisition",
+      "description": "Evidence acquisition with chain of custody and hash verification",
+      "agent": "acquisition-agent",
+      "example": "/forensics-acquire ssh://user@host:port --logs --config"
+    },
+    {
+      "name": "forensics-timeline",
+      "trigger": "/forensics-timeline",
+      "file": "forensics-timeline.md",
+      "category": "forensics-timeline",
+      "description": "Build correlated event timeline from multiple sources",
+      "agent": "timeline-builder",
+      "example": "/forensics-timeline .aiwg/forensics/findings/target-2026-02-27/"
+    },
+    {
+      "name": "forensics-hunt",
+      "trigger": "/forensics-hunt",
+      "file": "forensics-hunt.md",
+      "category": "forensics-hunting",
+      "description": "Threat hunt using Sigma rules against log sources",
+      "agent": "log-analyst",
+      "example": "/forensics-hunt --rules ssh-brute-force-success --target host"
+    },
+    {
+      "name": "forensics-ioc",
+      "trigger": "/forensics-ioc",
+      "file": "forensics-ioc.md",
+      "category": "forensics-ioc",
+      "description": "Extract and enrich indicators of compromise",
+      "agent": "ioc-analyst",
+      "example": "/forensics-ioc .aiwg/forensics/findings/ --enrich"
+    },
+    {
+      "name": "forensics-report",
+      "trigger": "/forensics-report",
+      "file": "forensics-report.md",
+      "category": "forensics-reporting",
+      "description": "Generate forensic investigation report",
+      "agent": "reporting-agent",
+      "example": "/forensics-report .aiwg/forensics/ --format full"
+    },
+    {
+      "name": "forensics-status",
+      "trigger": "/forensics-status",
+      "file": "forensics-status.md",
+      "category": "forensics-monitoring",
+      "description": "Show investigation status dashboard",
+      "agent": "forensics-orchestrator",
+      "example": "/forensics-status"
+    }
+  ],
+  "workflows": [
+    "quick-triage",
+    "full-investigation",
+    "targeted-ssh",
+    "container-sweep",
+    "cloud-audit"
+  ],
+  "categories": {
+    "forensics-reconnaissance": {
+      "name": "Reconnaissance",
+      "description": "Target system profiling"
+    },
+    "forensics-triage": {
+      "name": "Triage",
+      "description": "Quick volatile data assessment"
+    },
+    "forensics-investigation": {
+      "name": "Investigation",
+      "description": "Full forensic investigation"
+    },
+    "forensics-acquisition": {
+      "name": "Acquisition",
+      "description": "Evidence collection and preservation"
+    },
+    "forensics-timeline": {
+      "name": "Timeline",
+      "description": "Event correlation and reconstruction"
+    },
+    "forensics-hunting": {
+      "name": "Threat Hunting",
+      "description": "Sigma rule-based detection"
+    },
+    "forensics-ioc": {
+      "name": "IOC Management",
+      "description": "Indicator extraction and enrichment"
+    },
+    "forensics-reporting": {
+      "name": "Reporting",
+      "description": "Forensic report generation"
+    },
+    "forensics-monitoring": {
+      "name": "Monitoring",
+      "description": "Investigation status tracking"
+    }
+  },
+  "dependencies": {
+    "forensics-complete-agents": "^1.0.0"
+  },
+  "references": [
+    "@agentic/code/frameworks/forensics-complete/agents/manifest.json",
+    "@agentic/code/frameworks/forensics-complete/templates/"
+  ]
+}
