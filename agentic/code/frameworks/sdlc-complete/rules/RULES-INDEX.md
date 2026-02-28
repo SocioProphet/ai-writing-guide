@@ -61,7 +61,7 @@ Core rules are non-negotiable defaults deployed to every AIWG installation.
 
 ---
 
-## SDLC Rules (20 rules — active with framework)
+## SDLC Rules (22 rules — active with framework)
 
 SDLC rules enforce workflow quality when the SDLC framework is deployed via `aiwg use sdlc`.
 
@@ -106,6 +106,16 @@ SDLC rules enforce workflow quality when the SDLC framework is deployed via `aiw
 **Summary**: Core orchestrator for SDLC workflows: interprets natural language, reads flow templates, launches multi-agent workflows. Pattern: Primary Author > Parallel Reviewers > Synthesizer > Archive.
 **When to apply**: Phase transitions, workflow execution, natural language commands, agent coordination
 **Full rule**: @agentic/code/frameworks/sdlc-complete/rules/sdlc-orchestration.md
+
+#### agent-friendly-code
+**Summary**: Quantitative thresholds (300 LOC warning, 500 error) and qualitative patterns for agent-processable code. Single responsibility per file, descriptive names, no barrel files, flat directories, composition over inheritance. Configurable via CLAUDE.md or .aiwg/config.yaml.
+**When to apply**: Code generation, code review, refactoring, file creation, new module design
+**Full rule**: @agentic/code/frameworks/sdlc-complete/rules/agent-friendly-code.md
+
+#### agent-generation-guardrails
+**Summary**: Runtime guardrails for code-generating agents. Check file size before writing; split proactively if exceeding thresholds; never enlarge files already over limits. Prevents the vicious cycle of agents creating files too large for future agents.
+**When to apply**: Code generation, file creation, file modification, append operations
+**Full rule**: @agentic/code/frameworks/sdlc-complete/rules/agent-generation-guardrails.md
 
 ### MEDIUM
 
@@ -195,7 +205,7 @@ Research rules manage the research corpus. Deployed when research features are a
 
 | Task Type | Relevant Rules |
 |-----------|---------------|
-| **Writing code** | no-attribution, executable-feedback, research-before-decision, anti-laziness, token-security |
+| **Writing code** | no-attribution, executable-feedback, research-before-decision, anti-laziness, token-security, agent-friendly-code, agent-generation-guardrails |
 | **Running tests** | executable-feedback, anti-laziness, reproducibility, reproducibility-validation |
 | **Creating artifacts** | mention-wiring, provenance-tracking, qualified-references, progressive-disclosure |
 | **Phase transitions** | hitl-gates, sdlc-orchestration, human-gate-display |
@@ -209,5 +219,5 @@ Research rules manage the research corpus. Deployed when research features are a
 
 ---
 
-*Generated from manifest.json v2.0.0 — 31 rules across 3 tiers*
+*Generated from manifest.json v2.0.0 — 33 rules across 3 tiers*
 *Full rule files: @agentic/code/frameworks/sdlc-complete/rules/*
