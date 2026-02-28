@@ -5,6 +5,44 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.2.14] - 2026-02-28 – "Forensics & Manageability" Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **Forensics-complete DFIR framework** | Full digital forensics lifecycle — 13 agents, 9 commands, 10 skills, Sigma hunting, evidence chain-of-custody |
+| **Codebase manageability tooling (#402-#407)** | Rules, commands, and skills to keep agent-generated code within context window limits |
+| **17 specialist agents + team compositions** | Cloud platform experts (AWS/Azure/GCP), framework specialists (React, Django, Spring Boot), and 7 pre-built team configs |
+| **UAT-MCP toolkit addon** | MCP-powered user acceptance testing with coverage tracking and structured test plans |
+| **Model optimization & prompting guides** | 8 new documentation guides covering Claude, GPT, local models, hybrid architectures, and prompting techniques |
+
+### Added
+
+- **Forensics-complete framework** (`agentic/code/frameworks/forensics-complete/`) — 13 DFIR agents (acquisition, memory, network, log, cloud, container, IOC, persistence, timeline, triage, recon, reporting, orchestrator), 9 investigation commands, 10 skills (linux-forensics, cloud-forensics, container-forensics, memory-forensics, evidence-preservation, sigma-hunting, ioc-extraction, log-analysis, supply-chain-forensics, target-profiling), 8 Sigma rule templates, 7 investigation templates, 4 enforcement rules (evidence-integrity, non-destructive, red-flag-escalation, volatility-order), 5 YAML schemas
+- **Agent-friendly-code rule** (`rules/agent-friendly-code.md`) — quantitative thresholds (300 LOC warning, 500 error per file; 30/50 lines per function; 3/4 nesting depth) and 6 qualitative patterns for agent-processable code structure (#402)
+- **Agent-generation-guardrails rule** (`rules/agent-generation-guardrails.md`) — runtime guardrails preventing agents from creating or enlarging files beyond agent-friendly limits; checks file size before writing (#405)
+- **`/codebase-health` command** — scans source code, reports agent-readiness score (0-100), file size distribution, anti-pattern detection, actionable recommendations; supports text/JSON/markdown output and CI mode (#403)
+- **`/complexity-gate` command** — CI-friendly pass/fail complexity enforcement with baseline mode for incremental adoption, `--changed-only` for pre-commit hooks, JSON output for pipeline parsing (#406)
+- **`/decompose-file` skill** — guided source code splitting with dependency analysis, import rewiring, and test verification; 5-step workflow (Analyze → Plan → Execute → Rewire → Verify) (#404)
+- **`/code-chunker` skill** — navigable structural maps of large files with function/class/block depth levels, map/JSON/tree output formats, and section-level navigation (#407)
+- **17 specialist agents** — AI/ML Engineer, AWS/Azure/GCP Specialists, Blockchain Developer, Compliance Checker, Cost Optimizer, Data Engineer, Django Expert, Frontend Specialist, Kubernetes Expert, Migration Planner, Mobile Developer, Multi-Cloud Strategist, React Expert, Spring Boot Expert, Technical Debt Analyst
+- **7 team compositions** (`teams/`) — pre-built agent team configurations for API development, full-stack, greenfield, maintenance, migration, and security review scenarios with role assignments and coordination patterns
+- **UAT-MCP toolkit addon** (`agentic/code/addons/uat-mcp/`) — 2 agents (uat-planner, uat-executor), 3 commands (uat-generate, uat-execute, uat-report), 1 skill (uat-mode), 3 YAML schemas (uat-plan, uat-result, uat-coverage), 4 templates
+- **Model optimization guides** (`docs/models/`) — Claude optimization, GPT optimization, local models, hybrid architectures
+- **Prompting technique guides** (`docs/prompting/`) — chain-of-thought, context optimization, few-shot learning, role-based prompting
+
+### Changed
+
+- **README.md** — added forensics-complete and UAT-MCP to frameworks/addons tables; updated agent count to 85+; updated command count to 75+; updated CLI reference link to 42 commands; added codebase health examples to "See It In Action"
+- **CLAUDE.md** — added forensics-complete to repository structure and key references
+- **Rules manifest** — updated to 33 rules total (added agent-friendly-code and agent-generation-guardrails)
+- **RULES-INDEX.md** — updated to 33 rules across 3 tiers (added 2 new SDLC HIGH rules)
+
+### Fixed
+
+- **README percentage claims** — removed hard percentage claims that lacked citation backing
+
+---
+
 ## [2026.2.13] - 2026-02-26
 
 | What changed | Why you care |

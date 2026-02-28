@@ -23,6 +23,7 @@ aiwg use sdlc
 agentic/code/
 ├── frameworks/
 │   ├── sdlc-complete/       # Complete SDLC coverage
+│   ├── forensics-complete/  # Digital forensics & incident response
 │   ├── media-marketing-kit/ # Full marketing operations
 │   ├── media-curator/       # Media archive management
 │   └── research-complete/   # Research workflow automation
@@ -274,6 +275,7 @@ aiwg reproducibility-validate  # Validate workflow reproducibility
 | **Creating Extensions** | `@docs/extensions/creating-extensions.md` |
 | **Extension Types** | `@docs/extensions/extension-types.md` |
 | **SDLC Framework** | `@agentic/code/frameworks/sdlc-complete/README.md` |
+| **Forensics Complete** | `@agentic/code/frameworks/forensics-complete/README.md` |
 | **Media Curator** | `@agentic/code/frameworks/media-curator/README.md` |
 | **Research Complete** | `@agentic/code/frameworks/research-complete/README.md` |
 | **RLM Addon** | `@agentic/code/addons/rlm/README.md` |

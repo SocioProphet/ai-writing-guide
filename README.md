@@ -120,7 +120,8 @@ aiwg new my-project
 
 | Framework | What it does |
 |-----------|--------------|
-| **[SDLC Complete](agentic/code/frameworks/sdlc-complete/)** | Full software development lifecycle with 70+ agents, commands, templates, and multi-agent orchestration |
+| **[SDLC Complete](agentic/code/frameworks/sdlc-complete/)** | Full software development lifecycle with 85+ agents, commands, templates, and multi-agent orchestration |
+| **[Forensics Complete](agentic/code/frameworks/forensics-complete/)** | Digital forensics and incident response — evidence acquisition, timeline building, IOC analysis, and Sigma hunting |
 | **[Media/Marketing Kit](agentic/code/frameworks/media-marketing-kit/)** | Complete marketing campaign management from strategy to analytics |
 | **[Media Curator](agentic/code/frameworks/media-curator/)** | Intelligent media archive management — discography analysis, acquisition, quality filtering, metadata curation, and multi-platform export |
 | **[Research Complete](agentic/code/frameworks/research-complete/)** | Academic research workflow — discovery, acquisition, RAG-based documentation, and citation management |
@@ -133,6 +134,7 @@ aiwg new my-project
 | **[Writing Quality](agentic/code/addons/writing-quality/)** | Content validation, AI pattern detection, voice profiles |
 | **[Testing Quality](agentic/code/addons/testing-quality/)** | TDD enforcement, mutation testing, flaky test detection |
 | **[Voice Framework](agentic/code/addons/voice-framework/)** | 4 built-in voice profiles with create/blend/apply skills |
+| **[UAT-MCP Toolkit](agentic/code/addons/uat-mcp/)** | User acceptance testing with MCP-powered test execution and coverage tracking |
 
 ### Reliability Patterns
 
@@ -161,6 +163,12 @@ aiwg new my-project
 # Process massive codebases with recursive decomposition
 /rlm-query "src/**/*.ts" "Extract all exported interfaces" --model haiku
 /rlm-batch "src/components/*.tsx" "Add TypeScript types" --parallel 4
+
+# Scan codebase for agent-readiness
+/codebase-health --format text
+
+# Decompose large files into agent-friendly modules
+/decompose-file src/large-file.ts --execute
 
 # Deploy to production
 /flow-deploy-to-production
@@ -200,7 +208,7 @@ See [Platform Integration Guides](docs/integrations/) for setup instructions.
 
 - **[Quick Start Guide](USAGE_GUIDE.md)** — Context selection and basic usage
 - **[Prerequisites](docs/getting-started/prerequisites.md)** — Node.js, AI platforms, OS support
-- **[CLI Reference](docs/cli-reference.md)** — All 40 `aiwg` commands with examples
+- **[CLI Reference](docs/cli-reference.md)** — All 42 `aiwg` commands with examples
 
 ### By Audience Level
 
@@ -230,6 +238,7 @@ See [Platform Integration Guides](docs/integrations/) for setup instructions.
 ### Framework Documentation
 
 - **[SDLC Framework](agentic/code/frameworks/sdlc-complete/README.md)** — Agents, commands, templates, flows
+- **[Forensics Complete](agentic/code/frameworks/forensics-complete/README.md)** — DFIR investigation workflows
 - **[Marketing Kit](agentic/code/frameworks/media-marketing-kit/README.md)** — Campaign lifecycle guide
 - **[Media Curator](agentic/code/frameworks/media-curator/README.md)** — Media archive management
 - **[Research Complete](agentic/code/frameworks/research-complete/README.md)** — Research workflows
@@ -244,12 +253,12 @@ AIWG's unified extension system enables dynamic discovery, semantic search, and 
 - **[Extension Types Reference](docs/extensions/extension-types.md)** — Complete type definitions
 
 **Extension types:**
-- **Agents** (70+): Specialized AI personas (API Designer, Test Engineer, Security Auditor)
-- **Commands** (31): CLI and slash commands (`aiwg use sdlc`, `/mention-wire`)
+- **Agents** (85+): Specialized AI personas (API Designer, Test Engineer, Security Auditor)
+- **Commands** (75+): CLI and slash commands (`aiwg use sdlc`, `/mention-wire`)
 - **Skills**: Natural language workflows (project awareness, voice application)
 - **Hooks**: Lifecycle event handlers (pre-session, post-write)
 - **Tools**: External utilities (git, jq, npm)
-- **Frameworks**: Complete workflows (SDLC, Marketing)
+- **Frameworks**: Complete workflows (SDLC, Forensics, Marketing)
 - **Addons**: Feature bundles (Voice, Testing Quality)
 
 ### Advanced Topics
