@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIWG Team Composition",
+  "description": "Schema for pre-configured agent team compositions",
+  "type": "object",
+  "required": ["name", "description", "agents", "use_cases"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable team name"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "CLI-friendly identifier (e.g., 'api-development')"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line description of team purpose"
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["agent", "role"],
+        "properties": {
+          "agent": {
+            "type": "string",
+            "description": "Agent filename without .md extension"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["lead", "contributor", "reviewer", "advisor"],
+            "description": "Agent's role within the team"
+          },
+          "responsibilities": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Specific responsibilities for this team context"
+          }
+        }
+      }
+    },
+    "use_cases": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Scenarios where this team composition excels"
+    },
+    "handoffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "artifact", "gate"],
+        "properties": {
+          "from": { "type": "string", "description": "Source agent" },
+          "to": { "type": "string", "description": "Target agent" },
+          "artifact": { "type": "string", "description": "What gets passed" },
+          "gate": { "type": "string", "description": "Quality check before handoff" }
+        }
+      },
+      "description": "Inter-agent handoff definitions with quality gates"
+    },
+    "sdlc_phases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["inception", "elaboration", "construction", "transition"]
+      },
+      "description": "SDLC phases where this team is most active"
+    },
+    "max_context_agents": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 4,
+      "description": "Maximum agents to load simultaneously (context budget)"
+    },
+    "overlap_resolution": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Which agent takes priority for overlapping capability"
+      },
+      "description": "Resolves when two agents cover similar ground"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "Full-Stack Development Team",
+  "slug": "full-stack",
+  "description": "End-to-end application development from UI to database to deployment",
+  "agents": [
+    {
+      "agent": "frontend-specialist",
+      "role": "contributor",
+      "responsibilities": [
+        "Build component architecture and design system",
+        "Optimize Web Vitals and accessibility",
+        "Implement state management and data fetching"
+      ]
+    },
+    {
+      "agent": "api-designer",
+      "role": "contributor",
+      "responsibilities": [
+        "Design backend API contracts",
+        "Define data models and validation schemas",
+        "Implement authentication and authorization"
+      ]
+    },
+    {
+      "agent": "database-optimizer",
+      "role": "contributor",
+      "responsibilities": [
+        "Design database schema and indexes",
+        "Optimize queries and resolve N+1 problems",
+        "Plan migrations and caching strategy"
+      ]
+    },
+    {
+      "agent": "devops-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Set up CI/CD pipeline",
+        "Configure containerization and deployment",
+        "Implement monitoring and alerting"
+      ]
+    }
+  ],
+  "use_cases": [
+    "Greenfield web application development",
+    "Full-stack feature implementation",
+    "SaaS product development",
+    "Internal tool development"
+  ],
+  "handoffs": [
+    {
+      "from": "api-designer",
+      "to": "frontend-specialist",
+      "artifact": "API contract (OpenAPI spec or TypeScript types)",
+      "gate": "All endpoints defined; request/response types exported"
+    },
+    {
+      "from": "api-designer",
+      "to": "database-optimizer",
+      "artifact": "Data model requirements",
+      "gate": "Entity relationships defined; access patterns documented"
+    },
+    {
+      "from": "database-optimizer",
+      "to": "api-designer",
+      "artifact": "Optimized schema with indexes",
+      "gate": "Schema validated; migration scripts tested"
+    },
+    {
+      "from": "frontend-specialist",
+      "to": "devops-engineer",
+      "artifact": "Build configuration and environment requirements",
+      "gate": "Build passes; environment variables documented"
+    }
+  ],
+  "sdlc_phases": ["elaboration", "construction", "transition"],
+  "max_context_agents": 3,
+  "overlap_resolution": {
+    "data_validation": "api-designer owns server-side validation; frontend-specialist owns client-side",
+    "type_definitions": "api-designer generates shared types; frontend-specialist consumes them"
+  }
+}

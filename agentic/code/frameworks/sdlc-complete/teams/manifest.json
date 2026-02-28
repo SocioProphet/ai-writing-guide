@@ -1,0 +1,20 @@
+{
+  "name": "Team Compositions",
+  "path": "agentic/code/frameworks/sdlc-complete/teams",
+  "schema": "schema.json",
+  "teams": [
+    "api-development.json",
+    "full-stack.json",
+    "greenfield.json",
+    "maintenance.json",
+    "migration.json",
+    "security-review.json"
+  ],
+  "docs": [
+    "README.md"
+  ],
+  "ignore": [
+    "manifest.json",
+    "schema.json"
+  ]
+}

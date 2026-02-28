@@ -1,0 +1,67 @@
+{
+  "name": "Security Review Team",
+  "slug": "security-review",
+  "description": "Comprehensive security assessment across code, infrastructure, and compliance",
+  "agents": [
+    {
+      "agent": "security-auditor",
+      "role": "lead",
+      "responsibilities": [
+        "Perform OWASP Top 10 vulnerability assessment",
+        "Review authentication and authorization flows",
+        "Audit cryptographic implementations"
+      ]
+    },
+    {
+      "agent": "code-reviewer",
+      "role": "contributor",
+      "responsibilities": [
+        "Review code for injection vulnerabilities",
+        "Check dependency security (known CVEs)",
+        "Validate input sanitization patterns"
+      ]
+    },
+    {
+      "agent": "security-architect",
+      "role": "advisor",
+      "responsibilities": [
+        "Conduct threat modeling (STRIDE)",
+        "Define security requirements and controls",
+        "Review network and infrastructure security"
+      ]
+    }
+  ],
+  "use_cases": [
+    "Pre-release security audit",
+    "Penetration test preparation",
+    "Compliance readiness review (SOC2, HIPAA, PCI)",
+    "Post-incident security hardening",
+    "Third-party integration security review"
+  ],
+  "handoffs": [
+    {
+      "from": "security-architect",
+      "to": "security-auditor",
+      "artifact": "Threat model with attack surface map",
+      "gate": "All entry points identified; threat categories assigned"
+    },
+    {
+      "from": "code-reviewer",
+      "to": "security-auditor",
+      "artifact": "Code-level vulnerability findings",
+      "gate": "All findings classified by severity; reproduction steps included"
+    },
+    {
+      "from": "security-auditor",
+      "to": "security-architect",
+      "artifact": "Consolidated security assessment report",
+      "gate": "All critical/high findings have remediation recommendations"
+    }
+  ],
+  "sdlc_phases": ["elaboration", "construction", "transition"],
+  "max_context_agents": 3,
+  "overlap_resolution": {
+    "vulnerability_assessment": "security-auditor leads application-level; security-architect leads infrastructure-level",
+    "code_review": "code-reviewer handles general quality; security-auditor handles security-specific patterns"
+  }
+}

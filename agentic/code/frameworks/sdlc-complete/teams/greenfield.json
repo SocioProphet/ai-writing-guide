@@ -1,0 +1,82 @@
+{
+  "name": "Greenfield Project Team",
+  "slug": "greenfield",
+  "description": "Launch new projects from requirements through architecture to initial implementation",
+  "agents": [
+    {
+      "agent": "requirements-analyst",
+      "role": "lead",
+      "responsibilities": [
+        "Transform business goals into user stories and acceptance criteria",
+        "Identify non-functional requirements (performance, security, scalability)",
+        "Prioritize feature backlog for MVP"
+      ]
+    },
+    {
+      "agent": "architecture-designer",
+      "role": "contributor",
+      "responsibilities": [
+        "Design system architecture and technology selection",
+        "Define component boundaries and integration patterns",
+        "Create ADRs for key technical decisions"
+      ]
+    },
+    {
+      "agent": "api-designer",
+      "role": "contributor",
+      "responsibilities": [
+        "Design API contracts and data models",
+        "Define service boundaries and communication patterns",
+        "Establish API versioning and evolution strategy"
+      ]
+    },
+    {
+      "agent": "devops-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Set up project scaffolding and CI/CD pipeline",
+        "Configure development environment and tooling",
+        "Define deployment strategy and infrastructure"
+      ]
+    }
+  ],
+  "use_cases": [
+    "New product development from scratch",
+    "MVP/prototype creation",
+    "Proof of concept for technical feasibility",
+    "New microservice within existing ecosystem",
+    "Startup product launch"
+  ],
+  "handoffs": [
+    {
+      "from": "requirements-analyst",
+      "to": "architecture-designer",
+      "artifact": "Prioritized requirements with NFRs",
+      "gate": "Requirements validated with stakeholders; NFRs quantified"
+    },
+    {
+      "from": "architecture-designer",
+      "to": "api-designer",
+      "artifact": "System architecture with component boundaries",
+      "gate": "ADRs approved; technology stack selected"
+    },
+    {
+      "from": "architecture-designer",
+      "to": "devops-engineer",
+      "artifact": "Infrastructure requirements and deployment model",
+      "gate": "Environment requirements defined; scaling strategy documented"
+    },
+    {
+      "from": "api-designer",
+      "to": "devops-engineer",
+      "artifact": "API contracts ready for implementation",
+      "gate": "OpenAPI spec validates; mock server passes smoke tests"
+    }
+  ],
+  "sdlc_phases": ["inception", "elaboration"],
+  "max_context_agents": 3,
+  "overlap_resolution": {
+    "technology_selection": "architecture-designer makes final call; api-designer advises on API framework",
+    "data_modeling": "api-designer owns API-level models; architecture-designer owns persistence strategy"
+  }
+}

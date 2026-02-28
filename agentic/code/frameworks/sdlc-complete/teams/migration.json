@@ -1,0 +1,82 @@
+{
+  "name": "Migration Team",
+  "slug": "migration",
+  "description": "Plan and execute technology migrations with minimal risk and downtime",
+  "agents": [
+    {
+      "agent": "architecture-designer",
+      "role": "lead",
+      "responsibilities": [
+        "Define target architecture and migration path",
+        "Identify breaking changes and compatibility requirements",
+        "Design rollback strategy and safety nets"
+      ]
+    },
+    {
+      "agent": "database-optimizer",
+      "role": "contributor",
+      "responsibilities": [
+        "Plan database schema migrations",
+        "Design data migration scripts with validation",
+        "Optimize queries for new schema"
+      ]
+    },
+    {
+      "agent": "test-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Build regression test suite for migration validation",
+        "Create data integrity verification tests",
+        "Implement parallel-run comparison tests"
+      ]
+    },
+    {
+      "agent": "devops-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Configure blue-green or canary deployment",
+        "Set up feature flags for gradual rollout",
+        "Implement monitoring for migration metrics"
+      ]
+    }
+  ],
+  "use_cases": [
+    "Framework migration (e.g., Angular to React)",
+    "Monolith to microservices decomposition",
+    "Database migration (e.g., MySQL to PostgreSQL)",
+    "Cloud provider migration",
+    "Major version upgrades (e.g., Python 2 to 3)"
+  ],
+  "handoffs": [
+    {
+      "from": "architecture-designer",
+      "to": "database-optimizer",
+      "artifact": "Target schema design with migration requirements",
+      "gate": "Breaking changes documented; data mapping complete"
+    },
+    {
+      "from": "architecture-designer",
+      "to": "test-engineer",
+      "artifact": "Migration acceptance criteria",
+      "gate": "Functional equivalence requirements defined"
+    },
+    {
+      "from": "database-optimizer",
+      "to": "devops-engineer",
+      "artifact": "Migration scripts with rollback procedures",
+      "gate": "Scripts tested on staging; rollback verified"
+    },
+    {
+      "from": "test-engineer",
+      "to": "devops-engineer",
+      "artifact": "Validated migration with passing tests",
+      "gate": "All regression tests pass; data integrity verified"
+    }
+  ],
+  "sdlc_phases": ["elaboration", "construction", "transition"],
+  "max_context_agents": 3,
+  "overlap_resolution": {
+    "migration_planning": "architecture-designer owns overall strategy; database-optimizer owns data migration specifics",
+    "deployment": "devops-engineer owns infrastructure; architecture-designer validates architecture alignment"
+  }
+}

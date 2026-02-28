@@ -1,0 +1,82 @@
+{
+  "name": "Maintenance Team",
+  "slug": "maintenance",
+  "description": "Sustain and improve existing systems through reviews, optimization, and debt reduction",
+  "agents": [
+    {
+      "agent": "code-reviewer",
+      "role": "lead",
+      "responsibilities": [
+        "Review PRs for quality, maintainability, and patterns",
+        "Identify code smells and refactoring opportunities",
+        "Enforce coding standards and best practices"
+      ]
+    },
+    {
+      "agent": "test-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Improve test coverage for critical paths",
+        "Fix flaky tests and test infrastructure",
+        "Add regression tests for reported bugs"
+      ]
+    },
+    {
+      "agent": "performance-engineer",
+      "role": "contributor",
+      "responsibilities": [
+        "Profile and optimize hot paths",
+        "Reduce bundle size and load times",
+        "Monitor and improve resource utilization"
+      ]
+    },
+    {
+      "agent": "debugger",
+      "role": "contributor",
+      "responsibilities": [
+        "Diagnose and fix reported bugs",
+        "Root-cause analysis for recurring issues",
+        "Investigate error logs and crash reports"
+      ]
+    }
+  ],
+  "use_cases": [
+    "Ongoing system maintenance and support",
+    "Bug triage and resolution sprints",
+    "Performance optimization initiatives",
+    "Technical debt reduction campaigns",
+    "Post-release stabilization"
+  ],
+  "handoffs": [
+    {
+      "from": "debugger",
+      "to": "code-reviewer",
+      "artifact": "Bug fix with root cause analysis",
+      "gate": "Fix addresses root cause (not symptom); regression test included"
+    },
+    {
+      "from": "code-reviewer",
+      "to": "test-engineer",
+      "artifact": "Identified coverage gaps and test improvements",
+      "gate": "Coverage gaps mapped to specific modules; priorities assigned"
+    },
+    {
+      "from": "performance-engineer",
+      "to": "code-reviewer",
+      "artifact": "Performance optimization with benchmark results",
+      "gate": "Before/after benchmarks documented; no regressions"
+    },
+    {
+      "from": "test-engineer",
+      "to": "debugger",
+      "artifact": "Reproducible test cases for reported bugs",
+      "gate": "Test reliably reproduces the bug; environment documented"
+    }
+  ],
+  "sdlc_phases": ["construction", "transition"],
+  "max_context_agents": 3,
+  "overlap_resolution": {
+    "code_quality": "code-reviewer owns style and patterns; performance-engineer owns efficiency",
+    "bug_investigation": "debugger leads investigation; test-engineer creates reproducer"
+  }
+}
