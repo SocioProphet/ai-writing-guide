@@ -3,7 +3,7 @@
 # Builds and deploys the documentation site on new release tags.
 # Runs independently from npm-publish and gitea-release workflows.
 #
-# Required secrets: SSH_DEPLOY_KEY, DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER, DEPLOY_PATH
+# Required secrets: GT_ACCESS_TOKEN, SSH_DEPLOY_KEY, DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER, DEPLOY_PATH
 
 name: Docsite Deploy
 
@@ -24,7 +24,7 @@ jobs:
 
       - name: Clone dbbuilder
         run: |
-          git clone https://git.integrolabs.net/roctinam/dbbuilder.git /tmp/dbbuilder
+          git clone https://token:${{ secrets.GT_ACCESS_TOKEN }}@git.integrolabs.net/roctinam/dbbuilder.git /tmp/dbbuilder
 
       - name: Install dbbuilder dependencies
         working-directory: /tmp/dbbuilder/apps/publisher
