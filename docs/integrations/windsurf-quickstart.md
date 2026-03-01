@@ -255,7 +255,7 @@ See [Ralph Guide](../ralph-guide.md) for full documentation including `--provide
 
 - [Cross-Platform Overview](cross-platform-overview.md) - Compare platform differences
 - [Intake Guide](../intake-guide.md) - Start your first project
-- [SDLC Framework](../../agentic/code/frameworks/sdlc-complete/README.md) - Complete framework reference
+- [SDLC Framework](https://github.com/jmagly/aiwg/blob/main/agentic/code/frameworks/sdlc-complete/README.md) - Complete framework reference
 - [Commands Reference](../cli-reference.md) - All 40 AIWG commands
 
 ---

@@ -308,18 +308,18 @@ Ralph inverts traditional AI optimization from "unpredictable success" to "predi
 
 See the addon documentation for detailed walkthroughs:
 
-- [Test Fixes](../agentic/code/addons/ralph/docs/examples/test-fix-loop.md)
-- [Migrations](../agentic/code/addons/ralph/docs/examples/migration.md)
-- [Coverage](../agentic/code/addons/ralph/docs/examples/coverage.md)
-- [When to Use Ralph](../agentic/code/addons/ralph/docs/when-to-use-ralph.md)
-- [Best Practices](../agentic/code/addons/ralph/docs/best-practices.md)
+- [Test Fixes](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/docs/examples/test-fix-loop.md)
+- [Migrations](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/docs/examples/migration.md)
+- [Coverage](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/docs/examples/coverage.md)
+- [When to Use Ralph](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/docs/when-to-use-ralph.md)
+- [Best Practices](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/docs/best-practices.md)
 
 ## Technical Details
 
 For implementation details:
 
-- [Internal Ralph Addon](../agentic/code/addons/ralph/README.md)
-- [External Ralph Tools](../tools/ralph-external/README.md)
+- [Internal Ralph Addon](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/ralph/README.md)
+- [External Ralph Tools](https://github.com/jmagly/aiwg/blob/main/tools/ralph-external/README.md)
 
 ## Credits
 

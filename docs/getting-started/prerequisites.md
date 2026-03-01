@@ -92,4 +92,4 @@ factory --version 2>/dev/null && echo "✅ Factory AI" || echo "ℹ️ Factory A
 git --version && echo "✅ Git" || echo "ℹ️ Git optional"
 ```
 
-**All checks passed?** Continue to [Quick Start](../../README.md#-quick-start)
+**All checks passed?** Continue to [Quick Start](../quickstart.md)

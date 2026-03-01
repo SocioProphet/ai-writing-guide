@@ -120,4 +120,4 @@ See the [Ralph Guide](ralph-guide.md) for detailed documentation.
 - [Intake Guide](intake-guide.md) - Starting your first project
 - [Ralph Guide](ralph-guide.md) - Iterative task execution
 - [CLI Usage](CLI_USAGE.md) - Full command reference
-- [SDLC Framework Docs](../agentic/code/frameworks/sdlc-complete/README.md) - Complete agent catalog
+- [SDLC Framework Docs](https://github.com/jmagly/aiwg/blob/main/agentic/code/frameworks/sdlc-complete/README.md) - Complete agent catalog

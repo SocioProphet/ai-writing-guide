@@ -154,5 +154,5 @@ aiwg use all         # Deploys all skills
 ## References
 
 - [DevKit Overview](devkit-overview.md)
-- [Add-Skill CLI](../../tools/scaffolding/add-skill.mjs)
-- [Skill Factory Addon](../../agentic/code/addons/skill-factory/)
+- [Add-Skill CLI](https://github.com/jmagly/aiwg/blob/main/tools/scaffolding/add-skill.mjs)
+- [Skill Factory Addon](https://github.com/jmagly/aiwg/blob/main/agentic/code/addons/skill-factory/)

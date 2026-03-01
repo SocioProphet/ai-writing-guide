@@ -256,6 +256,15 @@ kbd {
   color: var(--color-accent-yellow);
 }
 
+.status-bar .shortcuts .shortcut-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
 @media (width >= 1024px) {
   .status-bar .shortcuts {
     display: flex;
