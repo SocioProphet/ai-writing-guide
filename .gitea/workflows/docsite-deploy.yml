@@ -37,17 +37,20 @@ jobs:
       - name: Configure tenant
         run: |
           cat > /tmp/dbbuilder/apps/publisher/tenants.json <<'TENANTS'
-          [
-            {
-              "id": "aiwg-docs",
-              "source": {
-                "type": "local",
-                "path": "${{ gitea.workspace }}/docs"
-              },
-              "domains": ["docs.aiwg.io"],
-              "strictLinks": false
-            }
-          ]
+          {
+            "$schema": "./tenants.schema.json",
+            "tenants": [
+              {
+                "id": "aiwg-docs",
+                "source": {
+                  "type": "local",
+                  "path": "${{ gitea.workspace }}/docs"
+                },
+                "domains": ["docs.aiwg.io"],
+                "strictLinks": false
+              }
+            ]
+          }
           TENANTS
 
       - name: Build doc site
