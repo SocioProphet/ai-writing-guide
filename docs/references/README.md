@@ -1,6 +1,6 @@
 # Research References
 
-> **Full Research Corpus**: [roctinam/research-papers](https://git.integrolabs.net/roctinam/research-papers)
+> **Full Research Corpus**: [roctinam/research-papers](https://github.com/jmagly/research-papers)
 >
 > This directory contains AIWG-specific reference summaries. The comprehensive paper documentation, PDFs, and supporting indices are maintained in the shared research-papers repository.
 
@@ -20,9 +20,10 @@
 | Reasoning & Prompting | 4 | CoT, Self-Consistency, ICL Survey, ToT |
 | Tool Use & Acting | 3 | ReAct, Toolformer, SWE-bench |
 | Iteration & Recovery | 4 | Self-Refine, Reflexion, LATS, Constitutional AI |
-| Failure & Production | 2 | Roig, Bandara |
+| Failure & Production | 3 | Roig, Bandara, AIWG Anti-Patterns |
+| Specifications | 1 | MCP |
 | Research Management | 7 | FAIR, OAIS, PROV, GRADE, R-LAM, LitLLM, Agent Lab |
-| **Total** | **33** | |
+| **Total** | **34** | |
 
 ## References by Category
 
@@ -78,8 +79,15 @@
 
 | ID | Title | Authors | Year | AIWG Relevance |
 |----|-------|---------|------|----------------|
-| REF-001 | [Production-Grade Agentic Workflows](REF-001-production-agentic-workflows.md) | Bandara et al. | 2024 | Production reliability |
+| REF-001 | [Production-Grade Agentic Workflows](REF-001-production-grade-agentic-workflows.md) | Bandara et al. | 2024 | Production reliability |
 | REF-002 | [LLM Failure Modes in Agentic Scenarios](REF-002-llm-failure-modes-agentic.md) | Roig | 2025 | Failure archetypes, recovery |
+| REF-003 | [Agentic Development Anti-Patterns](REF-003-agentic-development-antipatterns.md) | AIWG | 2025 | Compensatory behaviors, code cruft |
+
+### Tier 2: Specifications
+
+| ID | Title | Authors | Year | AIWG Relevance |
+|----|-------|---------|------|----------------|
+| REF-066 | [MCP Specification](REF-066-mcp-specification-2025.md) | Anthropic | 2025 | Model Context Protocol integration |
 
 ### Tier 2: Research Management & Reproducibility
 
@@ -131,6 +139,10 @@
 - REF-024: Zhou et al. (2024) - LATS
 - REF-025: Bai et al. (2022) - Constitutional AI
 - REF-002: Roig (2025) - LLM Failure Modes
+- REF-003: AIWG (2025) - Development Anti-Patterns
+
+### Specifications
+- REF-066: Anthropic (2025) - MCP Specification
 
 ### Evaluation & Benchmarks
 - REF-014: Jimenez et al. (2024) - SWE-bench
@@ -161,13 +173,13 @@ When adding a new reference:
 - **Gap Analysis**: `.aiwg/research/research-gap-analysis.md` - Identifies AIWG priority research areas
 - **Terminology Glossary**: `docs/research/glossary.md` - Maps informal terms to professional equivalents
 
-**Shared Research Corpus** ([research-papers](https://git.integrolabs.net/roctinam/research-papers)):
+**Shared Research Corpus** ([research-papers](https://github.com/jmagly/research-papers)):
 - **Full Paper Documentation**: `documentation/references/REF-XXX-*.md`
 - **PDFs**: `pdfs/full/` and `pdfs/chunks/`
 - **Master Index**: `INDEX.md` - Topic and relevance lookups
 
 ---
 
-*Last updated: 2026-01-25*
+*Last updated: 2026-02-28*
 *Issue: #74 Research Acquisition*
-*Total references: 33*
+*Total references: 34*

@@ -112,8 +112,8 @@ aiwg mcp install gitea
     "command": "npx",
     "args": ["@aiwg/mcp-gitea"],
     "env": {
-      "GITEA_URL": "https://git.integrolabs.net",
-      "GITEA_TOKEN": "<from ~/.config/gitea/token>"
+      "GITEA_URL": "https://your-gitea-instance.example.com",
+      "GITEA_TOKEN": "<your-gitea-token>"
     },
     "auto": 80  // Enable auto mode for 80+ tools
   }

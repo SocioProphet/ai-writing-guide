@@ -391,7 +391,7 @@ Entry:
 ### Removed
 - **BREAKING**: `user.profile` field removed after deprecation in v2024.3.0.
   Migrate to `user.metadata`, which provides the same fields with a
-  validated schema. See [migration guide](docs/migration/profile-to-metadata.md).
+  validated schema. Use `user.metadata` for the same fields with validation.
 
 ---
 NOW WRITE AN ENTRY FOR:

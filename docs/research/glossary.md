@@ -21,7 +21,7 @@ This glossary documents AIWG's dual-terminology approach: accessible informal te
 **Professional Terms** - Used in research contexts, academic writing, and enterprise positioning
 **Citations/Standards** - Research papers, industry standards, or specifications backing the professional terminology
 
-> **Full Paper Documentation**: [roctinam/research-papers](https://git.integrolabs.net/roctinam/research-papers)
+> **Full Paper Documentation**: [roctinam/research-papers](https://github.com/jmagly/research-papers)
 
 ## Terminology by Domain
 
@@ -420,7 +420,7 @@ This glossary is maintained alongside AIWG's research corpus. When new research 
 
 **Maintainers:** Documentation Professionalization Team
 **Review Cycle:** Quarterly or when major research additions occur
-**Issue Tracker:** [Issue #68 - Terminology Mapping](https://git.integrolabs.net/roctinam/ai-writing-guide/issues/68)
+**Issue Tracker:** [Issue #68 - Terminology Mapping](https://github.com/jmagly/aiwg/issues/68)
 
 ---
 
@@ -431,4 +431,4 @@ This glossary is maintained alongside AIWG's research corpus. When new research 
 - @docs/research/research-background.md - Research foundations
 - @.aiwg/planning/documentation-professionalization-plan.md - Professional terminology strategy
 - @.aiwg/research/paper-analysis/INDEX.md - Complete research corpus
-- [roctinam/research-papers](https://git.integrolabs.net/roctinam/research-papers) - Full paper repository
+- [roctinam/research-papers](https://github.com/jmagly/research-papers) - Full paper repository

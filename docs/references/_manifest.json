@@ -5,7 +5,8 @@
   "order": [
     "REF-001-production-grade-agentic-workflows",
     "REF-002-llm-failure-modes-agentic",
-    "REF-003-mcp-specification-2025"
+    "REF-003-agentic-development-antipatterns",
+    "REF-066-mcp-specification-2025"
   ],
   "exclude": ["README"]
 }

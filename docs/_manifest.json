@@ -4,6 +4,8 @@
   "order": [
     "welcome",
     "getting-started",
+    "overview/what-is-aiwg",
+    "overview/executive-brief",
     "quickstart",
     "intake-guide",
     "regenerate-guide",
@@ -16,6 +18,7 @@
     "integrations/codex-quickstart",
     "integrations/opencode-quickstart",
     "integrations/warp-terminal-quickstart",
+    "integrations/windsurf-quickstart",
     "integrations/cross-platform-config",
     "quickstart-sdlc",
     "quickstart-mmk",
@@ -24,6 +27,9 @@
     "mention-utilities",
     "deploy-generators",
     "configuration/model-configuration",
+    "hook-patterns",
+    "mcp/README",
+    "plugin-marketplace-guide",
     "daemon-guide",
     "messaging-guide",
     "troubleshooting",
@@ -31,12 +37,28 @@
     "troubleshooting/deployment-issues",
     "troubleshooting/path-issues",
     "troubleshooting/platform-issues",
+    "guides",
+    "models",
+    "models/claude-optimization",
+    "models/gpt-optimization",
+    "models/local-models",
+    "models/hybrid-architectures",
+    "prompting",
+    "prompting/chain-of-thought",
+    "prompting/context-optimization",
+    "prompting/few-shot-learning",
+    "prompting/role-based-prompting",
     "customizing",
+    "extensions",
+    "extensions/overview",
+    "extensions/creating-extensions",
+    "extensions/extension-types",
     "development",
     "development/devkit-overview",
     "development/addon-creation-guide",
     "development/extension-creation-guide",
     "development/framework-creation-guide",
+    "development/skill-creation-guide",
     "development/walkthrough-create-addon",
     "development/file-placement-guide",
     "smithing",
@@ -55,8 +77,11 @@
     "references",
     "references/REF-001-production-grade-agentic-workflows",
     "references/REF-002-llm-failure-modes-agentic",
-    "references/REF-003-mcp-specification-2025",
+    "references/REF-003-agentic-development-antipatterns",
+    "references/REF-066-mcp-specification-2025",
     "releases",
+    "releases/v2026.2.14-announcement",
+    "releases/v2026.2.12-announcement",
     "releases/v2026.2.9-announcement",
     "releases/v2026.2.8-announcement",
     "releases/v2026.2.7-announcement",
@@ -87,6 +112,20 @@
       "id": "getting-started",
       "title": "Getting Started",
       "summary": "Install and use AIWG"
+    },
+    {
+      "id": "overview/what-is-aiwg",
+      "title": "What is AIWG?",
+      "summary": "Framework overview",
+      "file": "overview/what-is-aiwg.md",
+      "parent": "getting-started"
+    },
+    {
+      "id": "overview/executive-brief",
+      "title": "Executive Brief",
+      "summary": "High-level summary",
+      "file": "overview/executive-brief.md",
+      "parent": "getting-started"
     },
     {
       "id": "quickstart",
@@ -173,6 +212,13 @@
       "parent": "integrations"
     },
     {
+      "id": "integrations/windsurf-quickstart",
+      "title": "Windsurf",
+      "summary": "Setup for Windsurf",
+      "file": "integrations/windsurf-quickstart.md",
+      "parent": "integrations"
+    },
+    {
       "id": "integrations/cross-platform-config",
       "title": "Configuration",
       "summary": "Shared configuration",
@@ -227,6 +273,27 @@
       "parent": "reference"
     },
     {
+      "id": "hook-patterns",
+      "title": "Hook Patterns",
+      "summary": "Lifecycle event hooks",
+      "file": "hook-patterns.md",
+      "parent": "reference"
+    },
+    {
+      "id": "mcp/README",
+      "title": "MCP Server",
+      "summary": "Model Context Protocol",
+      "file": "mcp/README.md",
+      "parent": "reference"
+    },
+    {
+      "id": "plugin-marketplace-guide",
+      "title": "Plugin Marketplace",
+      "summary": "Install and manage plugins",
+      "file": "plugin-marketplace-guide.md",
+      "parent": "reference"
+    },
+    {
       "id": "daemon-guide",
       "title": "Daemon Mode",
       "summary": "Background daemon operations",
@@ -275,9 +342,168 @@
       "parent": "troubleshooting"
     },
     {
+      "id": "guides",
+      "title": "Guides",
+      "summary": "Model optimization and prompting"
+    },
+    {
+      "id": "models",
+      "title": "Model Optimization",
+      "summary": "Optimize AI model usage",
+      "collapsed": true,
+      "parent": "guides"
+    },
+    {
+      "id": "models/claude-optimization",
+      "title": "Claude",
+      "summary": "Claude context and tool patterns",
+      "file": "models/claude-optimization.md",
+      "parent": "models"
+    },
+    {
+      "id": "models/gpt-optimization",
+      "title": "GPT",
+      "summary": "GPT function calling and outputs",
+      "file": "models/gpt-optimization.md",
+      "parent": "models"
+    },
+    {
+      "id": "models/local-models",
+      "title": "Local Models",
+      "summary": "Quantization and deployment",
+      "file": "models/local-models.md",
+      "parent": "models"
+    },
+    {
+      "id": "models/hybrid-architectures",
+      "title": "Hybrid Architectures",
+      "summary": "Multi-model routing",
+      "file": "models/hybrid-architectures.md",
+      "parent": "models"
+    },
+    {
+      "id": "prompting",
+      "title": "Prompting Techniques",
+      "summary": "Advanced prompting strategies",
+      "collapsed": true,
+      "parent": "guides"
+    },
+    {
+      "id": "prompting/chain-of-thought",
+      "title": "Chain-of-Thought",
+      "summary": "Structured reasoning",
+      "file": "prompting/chain-of-thought.md",
+      "parent": "prompting"
+    },
+    {
+      "id": "prompting/context-optimization",
+      "title": "Context Optimization",
+      "summary": "Managing context windows",
+      "file": "prompting/context-optimization.md",
+      "parent": "prompting"
+    },
+    {
+      "id": "prompting/few-shot-learning",
+      "title": "Few-Shot Learning",
+      "summary": "Example selection and formatting",
+      "file": "prompting/few-shot-learning.md",
+      "parent": "prompting"
+    },
+    {
+      "id": "prompting/role-based-prompting",
+      "title": "Role-Based Prompting",
+      "summary": "Persona design and voice",
+      "file": "prompting/role-based-prompting.md",
+      "parent": "prompting"
+    },
+    {
       "id": "customizing",
       "title": "Customizing AIWG",
       "summary": "Extend and build components"
+    },
+    {
+      "id": "extensions",
+      "title": "Extension System",
+      "summary": "Architecture and types",
+      "collapsed": true,
+      "parent": "customizing"
+    },
+    {
+      "id": "extensions/overview",
+      "title": "Overview",
+      "summary": "Extension architecture",
+      "file": "extensions/overview.md",
+      "parent": "extensions"
+    },
+    {
+      "id": "extensions/creating-extensions",
+      "title": "Creating Extensions",
+      "summary": "Build custom extensions",
+      "file": "extensions/creating-extensions.md",
+      "parent": "extensions"
+    },
+    {
+      "id": "extensions/extension-types",
+      "title": "Extension Types",
+      "summary": "Type reference",
+      "file": "extensions/extension-types.md",
+      "parent": "extensions"
+    },
+    {
+      "id": "development",
+      "title": "Addons & Frameworks",
+      "summary": "Package reusable components",
+      "collapsed": true,
+      "parent": "customizing"
+    },
+    {
+      "id": "development/devkit-overview",
+      "title": "Devkit Overview",
+      "summary": "Development toolkit",
+      "file": "development/devkit-overview.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/addon-creation-guide",
+      "title": "Creating Addons",
+      "summary": "Build addons",
+      "file": "development/addon-creation-guide.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/extension-creation-guide",
+      "title": "Creating Extensions",
+      "summary": "Build extensions",
+      "file": "development/extension-creation-guide.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/framework-creation-guide",
+      "title": "Creating Frameworks",
+      "summary": "Build frameworks",
+      "file": "development/framework-creation-guide.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/skill-creation-guide",
+      "title": "Creating Skills",
+      "summary": "Build skills",
+      "file": "development/skill-creation-guide.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/walkthrough-create-addon",
+      "title": "Addon Walkthrough",
+      "summary": "Step-by-step tutorial",
+      "file": "development/walkthrough-create-addon.md",
+      "parent": "development"
+    },
+    {
+      "id": "development/file-placement-guide",
+      "title": "File Placement",
+      "summary": "Where files go",
+      "file": "development/file-placement-guide.md",
+      "parent": "development"
     },
     {
       "id": "commands",
@@ -343,55 +569,6 @@
       "parent": "smithing"
     },
     {
-      "id": "development",
-      "title": "Addons & Extensions",
-      "summary": "Package reusable components",
-      "collapsed": true,
-      "parent": "customizing"
-    },
-    {
-      "id": "development/devkit-overview",
-      "title": "Devkit Overview",
-      "summary": "Development toolkit",
-      "file": "development/devkit-overview.md",
-      "parent": "development"
-    },
-    {
-      "id": "development/addon-creation-guide",
-      "title": "Creating Addons",
-      "summary": "Build addons",
-      "file": "development/addon-creation-guide.md",
-      "parent": "development"
-    },
-    {
-      "id": "development/extension-creation-guide",
-      "title": "Creating Extensions",
-      "summary": "Build extensions",
-      "file": "development/extension-creation-guide.md",
-      "parent": "development"
-    },
-    {
-      "id": "development/framework-creation-guide",
-      "title": "Creating Frameworks",
-      "summary": "Build frameworks",
-      "file": "development/framework-creation-guide.md",
-      "parent": "development"
-    },
-    {
-      "id": "development/walkthrough-create-addon",
-      "title": "Addon Walkthrough",
-      "summary": "Step-by-step tutorial",
-      "file": "development/walkthrough-create-addon.md",
-      "parent": "development"
-    },
-    {
-      "id": "development/file-placement-guide",
-      "title": "File Placement",
-      "summary": "Where files go",
-      "file": "development/file-placement-guide.md",
-      "parent": "development"
-    },
-    {
       "id": "contributing",
       "title": "Contributing",
       "summary": "Contribute to AIWG",
@@ -441,10 +618,17 @@
       "parent": "references"
     },
     {
-      "id": "references/REF-003-mcp-specification-2025",
-      "title": "REF-003: MCP Specification",
-      "summary": "MCP protocol spec",
-      "file": "references/REF-003-mcp-specification-2025.md",
+      "id": "references/REF-003-agentic-development-antipatterns",
+      "title": "REF-003: Development Antipatterns",
+      "summary": "Agentic development pitfalls",
+      "file": "references/REF-003-agentic-development-antipatterns.md",
+      "parent": "references"
+    },
+    {
+      "id": "references/REF-066-mcp-specification-2025",
+      "title": "REF-066: MCP Specification",
+      "summary": "Model Context Protocol spec",
+      "file": "references/REF-066-mcp-specification-2025.md",
       "parent": "references"
     },
     {
@@ -454,9 +638,23 @@
       "collapsed": true
     },
     {
+      "id": "releases/v2026.2.14-announcement",
+      "title": "v2026.2.14",
+      "summary": "Latest release",
+      "file": "releases/v2026.2.14-announcement.md",
+      "parent": "releases"
+    },
+    {
+      "id": "releases/v2026.2.12-announcement",
+      "title": "v2026.2.12",
+      "summary": "Previous release",
+      "file": "releases/v2026.2.12-announcement.md",
+      "parent": "releases"
+    },
+    {
       "id": "releases/v2026.2.9-announcement",
       "title": "v2026.2.9",
-      "summary": "Latest release",
+      "summary": "Previous release",
       "file": "releases/v2026.2.9-announcement.md",
       "parent": "releases"
     },

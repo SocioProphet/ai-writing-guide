@@ -73,5 +73,5 @@ If automatic installation doesn't work, add this to your MCP config:
 
 ## Further Reading
 
-- [MCP Specification Research](../references/REF-003-mcp-specification-2025.md) — Implementation details
+- [MCP Specification Research](../references/REF-066-mcp-specification-2025.md) — Implementation details
 - [MCP Official Docs](https://modelcontextprotocol.io/) — Protocol specification
