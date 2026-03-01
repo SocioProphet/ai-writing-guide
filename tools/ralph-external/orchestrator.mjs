@@ -19,7 +19,7 @@
  * @implements @.aiwg/requirements/design-ralph-external.md
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { StateManager } from './state-manager.mjs';
 import { SessionLauncher } from './session-launcher.mjs';
@@ -1433,6 +1433,44 @@ ${state.filesModified.length > 0 ? state.filesModified.map(f => `- ${f}`).join('
       console.log(`[External Ralph] Loop archived: ${this.registeredLoopId} (${finalStatus})`);
     } catch (error) {
       console.warn(`[External Ralph] Multi-loop completion failed: ${error.message}`);
+    }
+
+    // Also update launcher-registry.json (parallel registry used by CLI)
+    this.cleanupLauncherRegistry(this.registeredLoopId, finalStatus);
+  }
+
+  /**
+   * Remove or update completed loop entry in launcher-registry.json
+   * The launcher registry is a parallel tracking file used by the TS CLI layer
+   * @param {string} loopId - Loop ID to clean up
+   * @param {string} finalStatus - Final status of the loop
+   */
+  cleanupLauncherRegistry(loopId, finalStatus) {
+    try {
+      const registryPath = join(
+        process.cwd(),
+        '.aiwg',
+        'ralph-external',
+        'launcher-registry.json'
+      );
+      if (!existsSync(registryPath)) return;
+
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      if (registry.loops && registry.loops[loopId]) {
+        if (finalStatus === 'completed') {
+          // Remove completed entries entirely
+          delete registry.loops[loopId];
+        } else {
+          // Update status for failed/aborted (kept for potential resume)
+          registry.loops[loopId].status = finalStatus;
+          registry.loops[loopId].lastUpdate = new Date().toISOString();
+        }
+        registry.updatedAt = new Date().toISOString();
+        writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+        console.log(`[External Ralph] Launcher registry updated for ${loopId}: ${finalStatus}`);
+      }
+    } catch (error) {
+      console.warn(`[External Ralph] Launcher registry cleanup failed: ${error.message}`);
     }
   }
 }

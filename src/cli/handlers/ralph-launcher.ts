@@ -24,8 +24,8 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { join } from 'path';
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { join, basename } from 'path';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync, copyFileSync } from 'fs';
 
 /**
  * Options for launching an external Ralph loop
@@ -297,11 +297,17 @@ export function isProcessAlive(pid: number): boolean {
 }
 
 /**
- * Get status of all Ralph loops
+ * Get status of all Ralph loops.
+ * Detects stale entries (>24h without heartbeat) and auto-cleans completed entries.
  */
-export function getLoopStatuses(projectRoot: string): LoopRegistryEntry[] {
+export function getLoopStatuses(
+  projectRoot: string,
+  options: { autoCleanCompleted?: boolean } = {}
+): LoopRegistryEntry[] {
   const registry = loadLauncherRegistry(projectRoot);
   const statuses: LoopRegistryEntry[] = [];
+  const staleThresholdMs = 24 * 60 * 60 * 1000; // 24 hours
+  let registryDirty = false;
 
   for (const [loopId, entry] of Object.entries(registry.loops)) {
     // Update status based on process liveness
@@ -319,8 +325,27 @@ export function getLoopStatuses(projectRoot: string): LoopRegistryEntry[] {
       } else {
         entry.status = 'failed';
       }
+      registryDirty = true;
     }
+
+    // Detect stale entries (>24h since last update)
+    const lastUpdateAge = Date.now() - new Date(entry.lastUpdate).getTime();
+    if (lastUpdateAge > staleThresholdMs && entry.status === 'running') {
+      (entry as LoopRegistryEntry & { stale?: boolean }).stale = true;
+    }
+
+    // Auto-clean completed entries if requested
+    if (options.autoCleanCompleted && (entry.status === 'completed')) {
+      cleanupCompletedLoop(projectRoot, loopId);
+      registryDirty = true;
+      continue; // Don't include in statuses
+    }
+
     statuses.push(entry);
+  }
+
+  if (registryDirty) {
+    saveLauncherRegistry(projectRoot, registry);
   }
 
   return statuses;
@@ -457,6 +482,145 @@ export async function resumeLoop(
     message: `Resumed Ralph loop (${targetLoopId}). Check status: aiwg ralph-status`,
     registryPath: getRegistryPath(projectRoot),
   };
+}
+
+/**
+ * Clean up a completed loop: remove from launcher-registry and delete working state.
+ * Preserves completion reports by moving them to the ralph-external root before deletion.
+ *
+ * @param projectRoot - Project root directory
+ * @param loopId - Loop ID to clean up
+ * @param options - Cleanup options
+ * @returns Object with success status and details
+ */
+export function cleanupCompletedLoop(
+  projectRoot: string,
+  loopId: string,
+  options: { archive?: boolean } = {}
+): { success: boolean; message: string; preserved: string[] } {
+  const registryDir = getRegistryDir(projectRoot);
+  const loopDir = join(registryDir, 'loops', loopId);
+  const preserved: string[] = [];
+
+  // Preserve completion reports before deleting the loop directory
+  if (existsSync(loopDir)) {
+    try {
+      const files = readdirSync(loopDir);
+      for (const file of files) {
+        if (file.startsWith('completion-') && file.endsWith('.md')) {
+          const dest = join(registryDir, file);
+          copyFileSync(join(loopDir, file), dest);
+          preserved.push(dest);
+        }
+      }
+    } catch {
+      // Non-fatal: proceed with cleanup even if report preservation fails
+    }
+
+    if (options.archive) {
+      // Move to archive instead of deleting
+      const archiveDir = join(registryDir, 'archive', loopId);
+      mkdirSync(join(registryDir, 'archive'), { recursive: true });
+      try {
+        const { renameSync } = require('fs');
+        renameSync(loopDir, archiveDir);
+      } catch {
+        // If rename fails (cross-device), fall through to deletion
+      }
+    } else {
+      // Delete working state
+      try {
+        rmSync(loopDir, { recursive: true, force: true });
+      } catch {
+        // Non-fatal
+      }
+    }
+  }
+
+  // Remove entry from launcher registry
+  const registry = loadLauncherRegistry(projectRoot);
+  if (registry.loops[loopId]) {
+    delete registry.loops[loopId];
+    saveLauncherRegistry(projectRoot, registry);
+  }
+
+  return {
+    success: true,
+    message: `Cleaned up loop ${loopId}`,
+    preserved,
+  };
+}
+
+/**
+ * Clean up internal Ralph state after successful completion.
+ * Deletes current-loop.json, heartbeats, and iteration working state.
+ * Preserves completion report files.
+ *
+ * @param projectRoot - Project root directory
+ * @returns Object with success status and what was cleaned
+ */
+export function cleanupInternalRalph(projectRoot: string): {
+  success: boolean;
+  cleaned: string[];
+  preserved: string[];
+} {
+  const ralphDir = join(projectRoot, '.aiwg', 'ralph');
+  const cleaned: string[] = [];
+  const preserved: string[] = [];
+
+  if (!existsSync(ralphDir)) {
+    return { success: true, cleaned: [], preserved: [] };
+  }
+
+  // Check if current-loop.json exists and is completed
+  const currentLoopPath = join(ralphDir, 'current-loop.json');
+  if (existsSync(currentLoopPath)) {
+    try {
+      const state = JSON.parse(readFileSync(currentLoopPath, 'utf8'));
+      if (state.status === 'completed' || state.status === 'success') {
+        rmSync(currentLoopPath, { force: true });
+        cleaned.push('current-loop.json');
+      }
+    } catch {
+      // If we can't parse it, leave it alone
+    }
+  }
+
+  // Clean up heartbeats directory
+  const heartbeatsDir = join(ralphDir, 'heartbeats');
+  if (existsSync(heartbeatsDir)) {
+    try {
+      rmSync(heartbeatsDir, { recursive: true, force: true });
+      cleaned.push('heartbeats/');
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // Clean up iterations working state (but preserve completion reports)
+  const iterationsDir = join(ralphDir, 'iterations');
+  if (existsSync(iterationsDir)) {
+    try {
+      rmSync(iterationsDir, { recursive: true, force: true });
+      cleaned.push('iterations/');
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // Log preserved completion reports
+  try {
+    const files = readdirSync(ralphDir);
+    for (const file of files) {
+      if (file.startsWith('completion-') && file.endsWith('.md')) {
+        preserved.push(file);
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  return { success: true, cleaned, preserved };
 }
 
 /**
