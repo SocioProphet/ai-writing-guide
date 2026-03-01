@@ -164,6 +164,12 @@ aiwg use <framework|addon>
 
 **Options:**
 - `--provider <name>` - Target platform (claude, copilot, factory, cursor, windsurf, warp, openai, opencode)
+- `--model <name>` - Override model for all tiers (blanket)
+- `--reasoning-model <name>` - Override reasoning tier model (alias: `--reasoning`)
+- `--coding-model <name>` - Override coding tier model (alias: `--coding`)
+- `--efficiency-model <name>` - Override efficiency tier model (alias: `--efficiency`)
+- `--save` - Save model overrides to project `models.json`
+- `--save-user` - Save model overrides to `~/.config/aiwg/models.json`
 - `--no-utils` - Skip aiwg-utils addon installation (frameworks only)
 - `--force` - Overwrite existing deployments
 - `--dry-run` - Preview without making changes
@@ -195,7 +201,26 @@ aiwg use rlm --provider codex
 
 # Preview deployment without writing files
 aiwg use sdlc --dry-run
+
+# Override model for all tiers
+aiwg use sdlc --model sonnet
+
+# Override individual tiers
+aiwg use sdlc --reasoning opus --coding sonnet --efficiency haiku
+
+# Use a specific model ID on Factory
+aiwg use sdlc --provider factory --coding-model gpt-5.3-codex
+
+# Blanket with per-tier override
+aiwg use sdlc --model sonnet --reasoning opus
+
+# Save model overrides for future deployments
+aiwg use sdlc --model sonnet --save
 ```
+
+**Model override precedence:** CLI flags > project `models.json` > user `~/.config/aiwg/models.json` > AIWG defaults
+
+**Shorthand values:** `opus`, `sonnet`, `haiku`, `inherit` — resolved per provider to full model IDs
 
 **Framework options:**
 

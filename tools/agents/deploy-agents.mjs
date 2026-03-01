@@ -21,6 +21,7 @@
  *   --dry-run                Show what would be deployed without writing
  *   --force                  Overwrite existing files
  *   --provider <name>        Target provider: claude (default), openai, codex, cursor, opencode, copilot, factory, warp, or windsurf
+ *   --model <name>            Override model for all tiers (blanket)
  *   --reasoning-model <name> Override model for reasoning tasks
  *   --coding-model <name>    Override model for coding tasks
  *   --efficiency-model <name> Override model for efficiency tasks
@@ -58,6 +59,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { loadModelConfig } from './providers/base.mjs';
 
 // ============================================================================
 // Provider Registry
@@ -82,6 +84,7 @@ function parseArgs() {
     dryRun: false,
     force: false,
     provider: 'claude',
+    model: null,             // Blanket override for all tiers
     reasoningModel: null,
     codingModel: null,
     efficiencyModel: null,
@@ -106,9 +109,10 @@ function parseArgs() {
     else if (a === '--dry-run') cfg.dryRun = true;
     else if (a === '--force') cfg.force = true;
     else if ((a === '--provider' || a === '--platform') && args[i + 1]) cfg.provider = String(args[++i]).toLowerCase();
-    else if (a === '--reasoning-model' && args[i + 1]) cfg.reasoningModel = args[++i];
-    else if (a === '--coding-model' && args[i + 1]) cfg.codingModel = args[++i];
-    else if (a === '--efficiency-model' && args[i + 1]) cfg.efficiencyModel = args[++i];
+    else if (a === '--model' && args[i + 1]) cfg.model = args[++i];
+    else if ((a === '--reasoning-model' || a === '--reasoning') && args[i + 1]) cfg.reasoningModel = args[++i];
+    else if ((a === '--coding-model' || a === '--coding') && args[i + 1]) cfg.codingModel = args[++i];
+    else if ((a === '--efficiency-model' || a === '--efficiency') && args[i + 1]) cfg.efficiencyModel = args[++i];
     else if (a === '--as-agents-md') cfg.asAgentsMd = true;
     else if (a === '--create-agents-md') cfg.createAgentsMd = true;
     else if (a === '--deploy-commands') cfg.deployCommands = true;
@@ -150,15 +154,38 @@ Options:
   --dry-run                Show what would be deployed without writing
   --force                  Overwrite existing files
   --provider <name>        Target provider (see below)
-  --reasoning-model <name> Override model for reasoning tasks
-  --coding-model <name>    Override model for coding tasks
-  --efficiency-model <name> Override model for efficiency tasks
+  --model <name>           Override model for all tiers (blanket)
+  --reasoning-model <name> Override model for reasoning tasks (alias: --reasoning)
+  --coding-model <name>    Override model for coding tasks (alias: --coding)
+  --efficiency-model <name> Override model for efficiency tasks (alias: --efficiency)
   --filter <pattern>       Only deploy agents matching pattern (glob)
   --filter-role <role>     Only deploy agents of role: reasoning|coding|efficiency
   --save                   Save model config to project models.json
   --save-user              Save model config to ~/.config/aiwg/models.json
   --as-agents-md           Aggregate to single AGENTS.md (Codex)
   --create-agents-md       Create/update AGENTS.md template
+
+Model Override Examples:
+  # Use sonnet for everything
+  aiwg use sdlc --model sonnet
+
+  # Override individual tiers
+  aiwg use sdlc --reasoning opus --coding sonnet --efficiency haiku
+
+  # Use a specific model ID for coding tier
+  aiwg use sdlc --provider factory --coding-model gpt-5.3-codex
+
+  # Blanket with per-tier override (reasoning uses opus, others use sonnet)
+  aiwg use sdlc --model sonnet --reasoning opus
+
+  # Save overrides to project models.json for future deployments
+  aiwg use sdlc --model sonnet --save
+
+Model Precedence:
+  CLI flags > project models.json > user ~/.config/aiwg/models.json > AIWG defaults
+
+Shorthand Values:
+  opus, sonnet, haiku, inherit — resolved per provider to full model IDs
 
 Providers (all deploy agents, commands, skills, and rules):
   claude    - Claude Code (default)
@@ -197,6 +224,12 @@ Examples:
   # Deploy to GitHub Copilot
   aiwg -deploy-agents --provider copilot --mode sdlc
 
+  # Override model for all tiers
+  aiwg -deploy-agents --mode sdlc --model sonnet
+
+  # Override individual tiers
+  aiwg -deploy-agents --mode sdlc --reasoning opus --coding sonnet --efficiency haiku
+
   # Dry run to preview deployment
   aiwg -deploy-agents --provider cursor --mode sdlc --dry-run
 `);
@@ -234,6 +267,41 @@ async function loadProvider(providerName) {
     console.error(`Failed to load provider '${resolved}':`, err.message);
     process.exit(1);
   }
+}
+
+// ============================================================================
+// Model Shorthand Resolution
+// ============================================================================
+
+/**
+ * Resolve a shorthand model value to a full model ID
+ *
+ * If the value is a known shorthand (opus, sonnet, haiku, inherit), resolve it
+ * through the provider's shorthand map. Otherwise treat it as a literal model ID.
+ *
+ * @param {string|null} value - CLI flag value (e.g., "opus" or "claude-opus-4-6")
+ * @param {object} shorthandMap - Provider shorthand map (e.g., { opus: "claude-opus-4-6" })
+ * @param {object} modelsConfig - Full models config from loadModelConfig()
+ * @param {string} provider - Provider name
+ * @param {string} tier - Tier name: "reasoning", "coding", or "efficiency"
+ * @returns {string|null} Resolved model ID or null if input was null
+ */
+function resolveShorthand(value, shorthandMap, modelsConfig, provider, tier) {
+  if (!value) return null;
+
+  const clean = value.toLowerCase().replace(/['"]/g, '');
+
+  // Check shorthand map first
+  if (shorthandMap[clean]) return shorthandMap[clean];
+
+  // Check provider-specific tier config (e.g., modelsConfig.factory.reasoning.model)
+  const providerConfig = modelsConfig?.[provider];
+  if (providerConfig?.[tier]?.model && clean === tier) {
+    return providerConfig[tier].model;
+  }
+
+  // Not a shorthand — return as literal model ID
+  return value;
 }
 
 // ============================================================================
@@ -344,6 +412,26 @@ function deepMerge(target, source) {
   if (cfg.mode === 'writing') cfg.mode = 'general';
   if (cfg.mode === 'mmk') cfg.mode = 'marketing';
 
+  // Apply --model blanket override: sets all three tiers unless individually overridden
+  if (cfg.model) {
+    if (!cfg.reasoningModel) cfg.reasoningModel = cfg.model;
+    if (!cfg.codingModel) cfg.codingModel = cfg.model;
+    if (!cfg.efficiencyModel) cfg.efficiencyModel = cfg.model;
+  }
+
+  // Load model configuration (project > user > AIWG defaults)
+  const modelsConfig = loadModelConfig(srcRoot);
+
+  // Resolve shorthand values in CLI flags using provider-specific config
+  if (cfg.reasoningModel || cfg.codingModel || cfg.efficiencyModel) {
+    const resolvedProvider = resolveProvider(cfg.provider);
+    const providerShorthand = modelsConfig?.[`${resolvedProvider}_shorthand`] || modelsConfig?.shorthand || {};
+
+    cfg.reasoningModel = resolveShorthand(cfg.reasoningModel, providerShorthand, modelsConfig, resolvedProvider, 'reasoning');
+    cfg.codingModel = resolveShorthand(cfg.codingModel, providerShorthand, modelsConfig, resolvedProvider, 'coding');
+    cfg.efficiencyModel = resolveShorthand(cfg.efficiencyModel, providerShorthand, modelsConfig, resolvedProvider, 'efficiency');
+  }
+
   console.log(`\n=== AIWG Agent Deployment ===`);
   console.log(`Provider: ${cfg.provider}`);
   console.log(`Source: ${srcRoot}`);
@@ -352,6 +440,7 @@ function deepMerge(target, source) {
   if (cfg.dryRun) console.log(`Dry run: enabled`);
   if (cfg.filter) console.log(`Filter: ${cfg.filter}`);
   if (cfg.filterRole) console.log(`Filter role: ${cfg.filterRole}`);
+  if (cfg.model) console.log(`Model (all tiers): ${cfg.model}`);
   if (cfg.reasoningModel) console.log(`Reasoning model: ${cfg.reasoningModel}`);
   if (cfg.codingModel) console.log(`Coding model: ${cfg.codingModel}`);
   if (cfg.efficiencyModel) console.log(`Efficiency model: ${cfg.efficiencyModel}`);
@@ -372,6 +461,7 @@ function deepMerge(target, source) {
     reasoningModel: cfg.reasoningModel,
     codingModel: cfg.codingModel,
     efficiencyModel: cfg.efficiencyModel,
+    modelsConfig,
     asAgentsMd: cfg.asAgentsMd,
     createAgentsMd: cfg.createAgentsMd,
     deployCommands: cfg.deployCommands,
