@@ -2,6 +2,8 @@
 #
 # Builds and deploys the documentation site on new release tags.
 # Runs independently from npm-publish and gitea-release workflows.
+#
+# Required secrets: SSH_DEPLOY_KEY, DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER, DEPLOY_PATH
 
 name: Docsite Deploy
 
@@ -64,18 +66,18 @@ jobs:
           printf '%s\n' '${{ secrets.SSH_DEPLOY_KEY }}' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      - name: Deploy to integro-dev-004
+      - name: Deploy to docs server
         run: |
           rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p 2424 -o StrictHostKeyChecking=accept-new" \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new" \
             /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/ \
-            roctinam@66.94.104.191:/home/roctinam/production-deploy/docs-aiwg-io/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}
 
       - name: Verify deployment
         run: |
-          ssh -i ~/.ssh/deploy_key -p 2424 -o StrictHostKeyChecking=accept-new \
-            roctinam@66.94.104.191 \
-            'test -f /home/roctinam/production-deploy/docs-aiwg-io/index.html && echo "Deploy verified: index.html present" || { echo "Deploy failed: index.html missing"; exit 1; }'
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'test -f ${{ secrets.DEPLOY_PATH }}index.html && echo "Deploy verified: index.html present" || { echo "Deploy failed: index.html missing"; exit 1; }'
 
       - name: Cleanup SSH key
         if: always()
@@ -84,6 +86,6 @@ jobs:
       - name: Log deployment result
         if: success()
         run: |
-          echo "Deployed docs.aiwg.io to integro-dev-004 (66.94.104.191)"
+          echo "Deployed docs.aiwg.io"
           echo "Tag: ${{ gitea.ref }}"
           echo "Commit: ${{ gitea.sha }}"

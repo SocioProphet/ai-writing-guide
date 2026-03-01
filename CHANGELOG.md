@@ -5,6 +5,37 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.2.15] - 2026-02-28 – "Doc Site" Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **docs.aiwg.io CI/CD pipeline** | Doc site builds and deploys automatically on every release tag via Gitea Actions |
+| **Doc site build validation** | PRs and pushes that touch `docs/` trigger build checks to catch broken links early |
+| **Broken link remediation** | 25 doc files fixed — relative links to source files replaced with absolute URLs that resolve on the published site |
+| **Welcome page refresh** | Landing page now showcases all 5 frameworks, 5 addons, and 8 platform targets |
+
+### Added
+
+- **`docsite-build.yml` workflow** — validates doc site builds on push/PR to main/develop when `docs/**` changes; uses dbbuilder publisher with `strictLinks: true` for broken link detection
+- **`docsite-deploy.yml` workflow** — builds and deploys doc site to docs.aiwg.io on `v*` tag push via SSH/rsync to integro-dev-004; includes build verification, SSH key management, and post-deploy checks
+- **Reliability Patterns section** on welcome page — Ralph Loop, Ensemble Validation, @-Mention Traceability
+- **CLI Reference** quick link on welcome page
+
+### Changed
+
+- **Welcome page** — expanded from 3 pillars to full framework/addon showcase (SDLC Complete, Forensics Complete, Research Complete, Media/Marketing Kit, Media Curator, RLM, Voice Framework, Testing Quality, Writing Quality, UAT-MCP)
+- **25 doc files** — replaced broken relative links (`../../agentic/`, `../../tools/`, `../../CHANGELOG.md`) with absolute GitHub URLs and `aiwg.io/changelog`
+- **`docs/getting-started/prerequisites.md`** — fixed "Continue to Quick Start" link to point to `docs/quickstart.md`
+- **`docs/overrides/index.html`** — converted search shortcut from `<span>` to accessible `<button>` element
+- **`docs/overrides/styles.css`** — added `.shortcut-btn` styles for status bar interactivity
+- **`docs/config.json`** — updated lead copy, expanded pillars to per-framework descriptions, added CLI Reference quick link
+
+### Fixed
+
+- **Root-level doc pages** — cleaned up and moved legal pages to proper locations
+
+---
+
 ## [2026.2.14] - 2026-02-28 – "Forensics & Manageability" Release
 
 | What changed | Why you care |
