@@ -13,6 +13,10 @@ on:
     branches: [main, develop]
     paths: ['docs/**']
 
+concurrency:
+  group: ci-${{ gitea.head_ref || gitea.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-docs:
     name: Build Documentation Site

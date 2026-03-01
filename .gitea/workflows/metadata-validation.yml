@@ -23,6 +23,10 @@ on:
       - 'tools/workspace/**'
       - '.gitea/workflows/metadata-validation.yml'
 
+concurrency:
+  group: ci-${{ gitea.head_ref || gitea.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-metadata:
     name: Validate Plugin Metadata

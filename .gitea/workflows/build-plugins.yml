@@ -17,6 +17,10 @@ on:
         default: true
         type: boolean
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Package Plugins

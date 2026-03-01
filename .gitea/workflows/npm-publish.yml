@@ -36,6 +36,10 @@ on:
         default: 'false'
         type: boolean
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   GITEA_NPM_REGISTRY: https://git.integrolabs.net/api/packages/roctinam/npm/
   NODE_VERSION: '20'

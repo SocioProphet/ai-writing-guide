@@ -11,6 +11,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ gitea.head_ref || gitea.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test
