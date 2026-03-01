@@ -24,7 +24,7 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { join, basename } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync, copyFileSync } from 'fs';
 
 /**
