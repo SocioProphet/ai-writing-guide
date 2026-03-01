@@ -93,6 +93,16 @@
       "name": "sdlc-accelerate",
       "description": "End-to-end SDLC ramp-up from idea to construction-ready with automated phase transitions and focused gate questions",
       "triggers": ["set up project", "take me to construction", "bootstrap SDLC", "ramp up project", "accelerate project", "full SDLC setup", "prepare project for development", "get this project construction-ready"]
+    },
+    {
+      "name": "artifact-lookup",
+      "description": "Search and navigate SDLC artifacts using the artifact index via aiwg index CLI",
+      "triggers": ["find artifacts about [topic]", "what depends on [artifact]", "show me the [phase] requirements", "what test plans exist for [module]", "what references UC-001", "show artifact stats", "rebuild the artifact index"]
+    },
+    {
+      "name": "cleanup-audit",
+      "description": "Dead code analysis and cleanup recommendations for unused exports, orphaned files, and stale dependencies",
+      "triggers": ["find dead code", "cleanup audit", "find unused exports", "orphaned files", "stale dependencies", "code cleanup"]
     }
   ],
   "dependencies": {

@@ -6,7 +6,7 @@ Consolidated index of all AIWG enforcement rules. Each entry provides a summary 
 
 ---
 
-## Core Rules (9 rules — always active)
+## Core Rules (10 rules — always active)
 
 Core rules are non-negotiable defaults deployed to every AIWG installation.
 
@@ -59,9 +59,14 @@ Core rules are non-negotiable defaults deployed to every AIWG installation.
 **When to apply**: Every user request, multi-part tasks, specification compliance, instruction drift detection
 **Full rule**: @agentic/code/frameworks/sdlc-complete/rules/instruction-comprehension.md
 
+#### subagent-scoping
+**Summary**: Each subagent gets ONE focused task with minimal context. Decompose complex work into parallel subagents rather than overloading one. Prompt budget <20% of context window per subagent. No delegation chains deeper than 2 levels. Spawn many focused subagents over few overloaded ones.
+**When to apply**: Task delegation, subagent spawning, parallel dispatch, orchestrator fan-out, context budget planning
+**Full rule**: @agentic/code/addons/aiwg-utils/rules/subagent-scoping.md
+
 ---
 
-## SDLC Rules (22 rules — active with framework)
+## SDLC Rules (23 rules — active with framework)
 
 SDLC rules enforce workflow quality when the SDLC framework is deployed via `aiwg use sdlc`.
 
@@ -116,6 +121,11 @@ SDLC rules enforce workflow quality when the SDLC framework is deployed via `aiw
 **Summary**: Runtime guardrails for code-generating agents. Check file size before writing; split proactively if exceeding thresholds; never enlarge files already over limits. Prevents the vicious cycle of agents creating files too large for future agents.
 **When to apply**: Code generation, file creation, file modification, append operations
 **Full rule**: @agentic/code/frameworks/sdlc-complete/rules/agent-generation-guardrails.md
+
+#### artifact-discovery
+**Summary**: Agent protocol for using `aiwg index` CLI as self-service artifact discovery tool. 5 mandatory rules: query before phase work, check deps before modifying, always use `--json`, rebuild after changes, use stats for health. Includes JSON output schemas.
+**When to apply**: Starting SDLC phase work, modifying artifacts, assessing project state, navigating dependencies
+**Full rule**: @agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md
 
 ### MEDIUM
 
@@ -207,17 +217,18 @@ Research rules manage the research corpus. Deployed when research features are a
 |-----------|---------------|
 | **Writing code** | no-attribution, executable-feedback, research-before-decision, anti-laziness, token-security, agent-friendly-code, agent-generation-guardrails |
 | **Running tests** | executable-feedback, anti-laziness, reproducibility, reproducibility-validation |
-| **Creating artifacts** | mention-wiring, provenance-tracking, qualified-references, progressive-disclosure |
+| **Creating artifacts** | mention-wiring, provenance-tracking, qualified-references, progressive-disclosure, artifact-discovery |
 | **Phase transitions** | hitl-gates, sdlc-orchestration, human-gate-display |
 | **Ralph loops** | tao-loop, actionable-feedback, best-output-selection, anti-laziness |
 | **Agent design** | few-shot-examples, conversable-agent-interface, agent-fallback, thought-protocol |
 | **Documentation** | citation-policy, no-attribution, reasoning-sections, research-metadata |
 | **Security review** | token-security, failure-mitigation, research-before-decision |
-| **Multi-agent work** | auto-reply-chains, criticality-panel-sizing, sdlc-orchestration |
+| **Delegating to subagents** | subagent-scoping, instruction-comprehension, research-before-decision |
+| **Multi-agent work** | auto-reply-chains, criticality-panel-sizing, sdlc-orchestration, subagent-scoping |
 | **Versioning/release** | versioning, no-attribution |
 | **Research** | research-metadata, index-generation, citation-policy |
 
 ---
 
-*Generated from manifest.json v2.0.0 — 33 rules across 3 tiers*
+*Generated from manifest.json v2.0.0 — 35 rules across 3 tiers*
 *Full rule files: @agentic/code/frameworks/sdlc-complete/rules/*

@@ -22,39 +22,58 @@ This skill ensures complete traceability across the SDLC by:
 
 ## Behavior
 
-When triggered, this skill:
+When triggered, this skill uses the `aiwg index` CLI as its primary backend for artifact discovery, falling back to direct file scanning only when the index is unavailable.
 
-1. **Extracts requirement IDs**:
-   - Scan `.aiwg/requirements/` for IDs (UC-*, REQ-*, NFR-*)
-   - Parse use cases, user stories, NFRs
-   - Build requirement inventory
+### Step 1: Ensure Index Available
 
-2. **Scans code for references**:
-   - Search source files for requirement IDs
-   - Check comments, annotations, commit messages
-   - Map code files to requirements
+```bash
+# Check if index exists, build if needed
+aiwg index stats --json || aiwg index build
+```
 
-3. **Scans tests for coverage**:
-   - Search test files for requirement references
-   - Parse test names and descriptions
-   - Map test cases to requirements
+### Step 2: Query Requirements Inventory
 
-4. **Builds traceability matrix**:
-   - Bidirectional mapping: requirement ↔ code ↔ tests
-   - Calculate coverage percentages
-   - Identify gaps in each direction
+```bash
+# Get all requirement artifacts from the index
+aiwg index query --type use-case --json
+aiwg index query --type requirement --json
+aiwg index query --type nfr --json
+```
 
-5. **Identifies issues**:
-   - Orphan requirements (no code)
-   - Untested code (code without tests)
-   - Untested requirements (requirements without tests)
-   - Code without requirements (rogue features)
+### Step 3: Check Dependencies for Each Artifact
 
-6. **Generates report**:
-   - Traceability matrix
-   - Coverage statistics
-   - Gap analysis
-   - Recommendations
+```bash
+# For each requirement, check what depends on it (downstream = code, tests)
+aiwg index deps .aiwg/requirements/UC-001.md --direction downstream --json
+```
+
+### Step 4: Build Traceability Matrix
+
+Using the dependency graph from `aiwg index deps`, build:
+- Bidirectional mapping: requirement <-> code <-> tests
+- Calculate coverage percentages
+- Identify gaps in each direction
+
+### Step 5: Identify Issues
+
+- Orphan requirements (no downstream code references)
+- Untested code (code without test dependents)
+- Untested requirements (requirements without test coverage)
+- Code without requirements (no upstream requirement references)
+
+### Step 6: Generate Report
+
+- Traceability matrix with coverage statistics
+- Gap analysis with prioritized recommendations
+- Save to `.aiwg/reports/traceability-{date}.md`
+
+### Fallback Behavior
+
+If `aiwg index` is not available (not installed or index not built), fall back to direct scanning:
+- Scan `.aiwg/requirements/` for IDs (UC-*, REQ-*, NFR-*)
+- Search source files for requirement ID references
+- Search test files for requirement coverage
+- Build matrix from raw file scanning results
 
 ## Traceability Model
 
@@ -338,8 +357,11 @@ Total: 3 orphan requirements"
 ## Integration
 
 This skill uses:
-- `artifact-metadata`: Get requirement artifact info
-- `project-awareness`: Find source and test directories
+- `aiwg index query`: Discover requirement artifacts by type and phase
+- `aiwg index deps`: Navigate upstream/downstream dependency graphs
+- `aiwg index stats`: Check index health and coverage metrics
+- `artifact-metadata`: Get requirement artifact info (fallback)
+- `project-awareness`: Find source and test directories (fallback)
 
 ## Scanning Configuration
 
@@ -388,3 +410,6 @@ traceability:
 
 - Requirements artifacts: .aiwg/requirements/
 - Traceability template: templates/management/traceability-matrix-template.md
+- @agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md — Agent protocol for index usage
+- @agentic/code/frameworks/sdlc-complete/skills/artifact-lookup/SKILL.md — Artifact search skill
+- @src/artifacts/cli.ts — CLI implementation
