@@ -115,14 +115,14 @@ export function loadModelConfig(srcRoot) {
   // Fallback to hardcoded defaults if no config found
   return {
     factory: {
-      reasoning: { model: 'claude-opus-4-1-20250805' },
-      coding: { model: 'claude-sonnet-4-5-20250929' },
-      efficiency: { model: 'claude-haiku-3-5' }
+      reasoning: { model: 'claude-opus-4-6' },
+      coding: { model: 'claude-sonnet-4-6' },
+      efficiency: { model: 'claude-haiku-4-5-20251001' }
     },
     shorthand: {
-      'opus': 'claude-opus-4-1-20250805',
-      'sonnet': 'claude-sonnet-4-5-20250929',
-      'haiku': 'claude-haiku-3-5',
+      'opus': 'claude-opus-4-6',
+      'sonnet': 'claude-sonnet-4-6',
+      'haiku': 'claude-haiku-4-5-20251001',
       'inherit': 'inherit'
     }
   };

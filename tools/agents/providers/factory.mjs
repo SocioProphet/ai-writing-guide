@@ -161,9 +161,9 @@ export function mapToolsToFactory(toolsString, agentName) {
 
 // Default Factory models (fallback if config not loaded)
 const DEFAULT_FACTORY_MODELS = {
-  reasoning: 'anthropic/claude-opus-4-20250514',
-  coding: 'anthropic/claude-sonnet-4-20250514',
-  efficiency: 'anthropic/claude-haiku-4-20250514'
+  reasoning: 'claude-opus-4-6',
+  coding: 'claude-sonnet-4-6',
+  efficiency: 'claude-haiku-4-5-20251001'
 };
 
 /**
@@ -184,8 +184,8 @@ export function mapModel(originalModel, modelCfg, modelsConfig) {
     return modelCfg.codingModel || defaultCoding;
   }
 
-  // Use shorthand mappings from config
-  const factoryModels = modelsConfig?.shorthand || {
+  // Prefer factory-specific shorthand over shared shorthand
+  const factoryModels = modelsConfig?.factory_shorthand || modelsConfig?.shorthand || {
     'opus': defaultReasoning,
     'sonnet': defaultCoding,
     'haiku': defaultEfficiency,

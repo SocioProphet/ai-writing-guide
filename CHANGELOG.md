@@ -5,6 +5,28 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.3.0] - 2026-03-01 – "Model Sync" Service Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **Factory provider model IDs fixed** | `aiwg use sdlc --provider factory` now deploys valid model IDs that Factory can resolve |
+| **All provider model configs updated to 4.6** | Claude, Factory, Windsurf, and shorthand mappings now reference `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001` |
+| **Factory shorthand decoupled** | `mapModel()` prefers `factory_shorthand` over shared `shorthand`, preventing future cross-provider drift |
+
+### Fixed
+
+- **`factory.mjs` DEFAULT_FACTORY_MODELS** — removed invalid `anthropic/` prefix and updated stale model IDs (`anthropic/claude-opus-4-20250514` → `claude-opus-4-6`, etc.) (Fixes #410)
+- **`base.mjs` loadModelConfig() fallback** — replaced invalid IDs (`claude-opus-4-1-20250805`, `claude-haiku-3-5`) with current Factory-compatible IDs
+- **`models.json` factory section** — updated from stale `claude-haiku-3-5` / `claude-opus-4-5-20251101` to current model IDs
+- **`models.json` shorthand section** — updated shared shorthand mappings to current model IDs
+
+### Changed
+
+- **`models.json` claude + windsurf sections** — updated to Claude 4.6 model family
+- **`factory.mjs` mapModel()** — now prefers `factory_shorthand` config key over shared `shorthand` for Factory-specific model resolution
+
+---
+
 ## [2026.2.15] - 2026-02-28 – "Doc Site" Release
 
 | What changed | Why you care |

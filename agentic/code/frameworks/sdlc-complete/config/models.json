@@ -4,35 +4,35 @@
   "title": "AIWG Model Configuration",
   "description": "Default model mappings for AIWG SDLC framework deployment. Users can customize these values for their specific needs.",
   "version": "1.0.0",
-  "lastUpdated": "2026-02-06",
+  "lastUpdated": "2026-03-01",
 
   "claude": {
     "reasoning": {
-      "model": "claude-opus-4-5-20251101",
-      "description": "Claude Opus 4.5 - Best for complex reasoning, architecture design, strategic decisions"
+      "model": "claude-opus-4-6",
+      "description": "Claude Opus 4.6 - Best for complex reasoning, architecture design, strategic decisions"
     },
     "coding": {
-      "model": "claude-sonnet-4-5-20250929",
-      "description": "Claude Sonnet 4.5 - Best for code generation, implementation, debugging"
+      "model": "claude-sonnet-4-6",
+      "description": "Claude Sonnet 4.6 - Best for code generation, implementation, debugging"
     },
     "efficiency": {
-      "model": "claude-haiku-3-5",
-      "description": "Claude Haiku 3.5 - Best for quick tasks, file operations, simple edits"
+      "model": "claude-haiku-4-5-20251001",
+      "description": "Claude Haiku 4.5 - Best for quick tasks, file operations, simple edits"
     }
   },
 
   "factory": {
     "reasoning": {
-      "model": "claude-opus-4-5-20251101",
-      "description": "Factory AI uses full Claude model identifiers"
+      "model": "claude-opus-4-6",
+      "description": "Factory AI uses bare Claude model identifiers (no anthropic/ prefix)"
     },
     "coding": {
-      "model": "claude-sonnet-4-5-20250929",
-      "description": "Factory AI uses full Claude model identifiers"
+      "model": "claude-sonnet-4-6",
+      "description": "Factory AI uses bare Claude model identifiers (no anthropic/ prefix)"
     },
     "efficiency": {
-      "model": "claude-haiku-3-5",
-      "description": "Factory AI uses full Claude model identifiers"
+      "model": "claude-haiku-4-5-20251001",
+      "description": "Factory AI uses bare Claude model identifiers (no anthropic/ prefix)"
     }
   },
 
@@ -54,23 +54,23 @@
   "windsurf": {
     "_status": "EXPERIMENTAL",
     "reasoning": {
-      "model": "claude-opus-4-5-20251101",
+      "model": "claude-opus-4-6",
       "description": "Windsurf uses Claude models via API (experimental)"
     },
     "coding": {
-      "model": "claude-sonnet-4-5-20250929",
+      "model": "claude-sonnet-4-6",
       "description": "Windsurf uses Claude models via API (experimental)"
     },
     "efficiency": {
-      "model": "claude-haiku-3-5",
+      "model": "claude-haiku-4-5-20251001",
       "description": "Windsurf uses Claude models via API (experimental)"
     }
   },
 
   "shorthand": {
-    "opus": "claude-opus-4-5-20251101",
-    "sonnet": "claude-sonnet-4-5-20250929",
-    "haiku": "claude-haiku-3-5",
+    "opus": "claude-opus-4-6",
+    "sonnet": "claude-sonnet-4-6",
+    "haiku": "claude-haiku-4-5-20251001",
     "inherit": "inherit"
   },
 
