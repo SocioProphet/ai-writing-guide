@@ -57,13 +57,17 @@ The same framework source gets transformed into the right format for each platfo
 └─────────────────────┘
 ```
 
-## 2. Tools for Building, Memory as a Byproduct
+## 2. Tools That Build Memory By Design
 
-AIWG gives your AI assistant operational tools — rules, commands, skills, and agents — that help you manage your project and build things. As you use them, they generate **semantic memory** in the `.aiwg/` directory. The tools do the work; the memory is what accumulates.
+AIWG gives your AI assistant operational tools — rules, commands, skills, and agents — that help you manage your project and build things. These tools are deliberately designed to produce **structured, semantically organized artifacts** in the `.aiwg/` directory. This isn't a side effect — it's the core design principle.
+
+Research shows why this matters. MetaGPT (Hong et al., 2024) demonstrated that requiring agents to produce structured intermediate artifacts — requirements documents, design specs, interface definitions — rather than unstructured dialogue dramatically improves outcomes: 85.9% pass rate vs. 67% for unstructured approaches. The structured outputs become context that subsequent agents can build on reliably.
+
+AIWG applies this principle at the project level. Every tool is designed so that doing useful work also produces well-organized memory that future sessions can consume.
 
 ### Rules: Behavioral Guardrails
 
-Rules keep the AI consistent across sessions. They're not memory — they're constraints the AI follows every time it works in your project.
+Rules keep the AI consistent across sessions. They're constraints the AI follows every time it works in your project.
 
 Some rules are always active:
 - **No attribution** — Never add "Generated with AI" to commits or code
@@ -82,7 +86,7 @@ For example, saying "run a security review" activates the security audit skill, 
 3. Reviews authentication and authorization patterns
 4. Generates a findings report saved to `.aiwg/security/`
 
-The AI doesn't need to be told the steps — the skill encodes the entire workflow. And the output — the findings report, the threat model, the test plan — becomes part of your project's semantic memory in `.aiwg/`.
+The AI doesn't need to be told the steps — the skill encodes the entire workflow. And the output — the findings report, the threat model, the test plan — is deliberately structured and placed in `.aiwg/` where future sessions will find it. This follows the same principle as Retrieval-Augmented Generation (Lewis et al., 2020): grounding AI responses in retrievable external knowledge rather than relying on the model's parametric memory alone.
 
 ### Agents: Specialized Personas
 
@@ -94,9 +98,13 @@ Agents give the AI a specific expertise profile. When a "Test Engineer" agent is
 
 Think of agents as job descriptions for the AI — they define what the AI knows and what tools it can use for a specific role.
 
-### The Memory Accumulates
+### Purposeful Memory Architecture
 
-As you use these tools across sessions, `.aiwg/` fills up with real project artifacts: requirements, architecture decisions, test strategies, risk registers. Each new session reads this directory and picks up where the last one left off. The tools build your project; the memory gives it continuity.
+The memory in `.aiwg/` is semantically laid out by design. Requirements go in `requirements/`, architecture decisions in `architecture/`, risks in `risks/`. Each artifact uses structured formats with cross-references — requirements trace to use cases, tests reference the requirements they verify, architecture decisions link to the risks they mitigate.
+
+This organization matters because it enables what Reflexion (Shinn et al., 2023) demonstrated at the agent level: systems that maintain structured episodic memory and learn from accumulated experience dramatically outperform those that start fresh each time. At the project level, `.aiwg/` serves the same function — it's the project's episodic memory, and each session builds on everything that came before.
+
+The traceability research (Gotel & Finkelstein, 1994) established that the most critical gap in software projects is tracing artifacts back to their origins — the *why* behind decisions. AIWG's `@-mention` system and structured artifact relationships address this directly, creating a web of linked knowledge that answers not just "what" but "why."
 
 ## 3. The Prompt Architecture
 
@@ -304,9 +312,9 @@ This web of linked artifacts means the AI can answer questions like "what tests 
 ## Key Takeaways
 
 1. **AIWG is an injection system** — it deploys context files into directories your AI reads
-2. **Rules, commands, skills, and agents are tools** — they help you manage your project and build things
-3. **`.aiwg/` is the memory** — artifacts accumulate as a byproduct of using the tools, creating session continuity
+2. **Tools are designed to produce memory** — rules, commands, skills, and agents help you build while deliberately generating structured, traceable artifacts in `.aiwg/`
+3. **The intake process seeds the memory** — structured questioning establishes the initial project context that every future session builds on
 4. **Flows coordinate agents** — multi-step processes with quality gates
 5. **It works across platforms** — same framework, adapted for Claude, Copilot, Cursor, and more
 
-The net effect: your AI assistant goes from a capable but forgetful tool to a knowledgeable team member that follows your standards, builds real artifacts, and remembers your project state across sessions.
+The net effect: your AI assistant goes from a capable but forgetful tool to a knowledgeable team member that follows your standards, builds real artifacts, and accumulates structured project knowledge that compounds across every session.
