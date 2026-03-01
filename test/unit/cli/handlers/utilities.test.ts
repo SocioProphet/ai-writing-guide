@@ -5,7 +5,7 @@
  *
  * @source @src/cli/handlers/utilities.ts
  * @implements @.aiwg/architecture/decisions/ADR-001-unified-extension-system.md
- * @issue #33
+ * @issue #33, #342
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -30,6 +30,75 @@ vi.mock('../../../../src/update/checker.mjs', () => ({
   forceUpdateCheck: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock fs for registry reading
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      existsSync: vi.fn((p: string) => {
+        if (typeof p === 'string' && p.includes('registry.json')) return true;
+        return actual.existsSync(p);
+      }),
+      readFileSync: vi.fn((p: string, enc?: string) => {
+        if (typeof p === 'string' && p.includes('registry.json')) {
+          return JSON.stringify({
+            version: '1.0.0',
+            created: '2026-01-13T00:00:00Z',
+            frameworks: [
+              { id: 'sdlc-complete', installed: '2026-01-13T00:00:00Z', version: '1.0.0' },
+              { id: 'media-marketing-kit', installed: '2026-01-13T00:00:00Z', version: '1.0.0' },
+            ],
+          });
+        }
+        return actual.readFileSync(p, enc as BufferEncoding);
+      }),
+    },
+    existsSync: vi.fn((p: string) => {
+      if (typeof p === 'string' && p.includes('registry.json')) return true;
+      return actual.existsSync(p);
+    }),
+    readFileSync: vi.fn((p: string, enc?: string) => {
+      if (typeof p === 'string' && p.includes('registry.json')) {
+        return JSON.stringify({
+          version: '1.0.0',
+          created: '2026-01-13T00:00:00Z',
+          frameworks: [
+            { id: 'sdlc-complete', installed: '2026-01-13T00:00:00Z', version: '1.0.0' },
+            { id: 'media-marketing-kit', installed: '2026-01-13T00:00:00Z', version: '1.0.0' },
+          ],
+        });
+      }
+      return actual.readFileSync(p, enc as BufferEncoding);
+    }),
+  };
+});
+
+// Mock useHandler (the singleton from use.ts)
+const { mockUseExecute } = vi.hoisted(() => ({
+  mockUseExecute: vi.fn().mockResolvedValue({ exitCode: 0 }),
+}));
+vi.mock('../../../../src/cli/handlers/use.js', () => ({
+  useHandler: {
+    execute: mockUseExecute,
+  },
+  UseHandler: vi.fn(),
+}));
+
+// Mock extension registry
+vi.mock('../../../../src/extensions/registry.js', () => ({
+  getRegistry: vi.fn().mockReturnValue({
+    getAll: vi.fn().mockReturnValue([]),
+    get: vi.fn(),
+    register: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../../src/extensions/deployment-registration.js', () => ({
+  registerDeployedExtensions: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import handlers after mocks are set up
 import {
   prefillCardsHandler,
@@ -51,6 +120,9 @@ describe('Utility Command Handlers', () => {
       frameworkRoot: '/mock/framework/root',
     };
     vi.clearAllMocks();
+    // Restore default mock return values after clearAllMocks
+    mockRun.mockResolvedValue({ exitCode: 0 });
+    mockUseExecute.mockResolvedValue({ exitCode: 0 });
   });
 
   describe('prefillCardsHandler', () => {
@@ -151,29 +223,84 @@ describe('Utility Command Handlers', () => {
       expect(updateHandler.category).toBe('maintenance');
       expect(updateHandler.aliases).toEqual(['-update', '--update']);
       expect(updateHandler.name).toBe('Update');
-      expect(updateHandler.description).toMatch(/update|check/i);
+      expect(updateHandler.description).toMatch(/update/i);
     });
 
-    it('should call forceUpdateCheck', async () => {
+    it('should check for updates and re-deploy installed frameworks', async () => {
       const { forceUpdateCheck } = await import('../../../../src/update/checker.mjs');
 
       const result = await updateHandler.execute(mockContext);
 
       expect(forceUpdateCheck).toHaveBeenCalled();
+      // Should call UseHandler for each installed framework (sdlc, marketing)
+      expect(mockUseExecute).toHaveBeenCalledTimes(2);
       expect(result.exitCode).toBe(0);
     });
 
-    it('should handle errors from forceUpdateCheck', async () => {
-      const { forceUpdateCheck } = await import('../../../../src/update/checker.mjs');
+    it('should pass --provider to UseHandler when specified', async () => {
+      mockContext.args = ['--provider', 'factory', '--skip-check'];
 
-      const testError = new Error('Update check failed');
-      (forceUpdateCheck as any).mockRejectedValueOnce(testError);
+      await updateHandler.execute(mockContext);
+
+      // Both calls should include --provider factory
+      for (const call of mockUseExecute.mock.calls) {
+        const ctx = call[0] as HandlerContext;
+        expect(ctx.args).toContain('--provider');
+        expect(ctx.args).toContain('factory');
+      }
+    });
+
+    it('should deploy all when --all flag is passed', async () => {
+      mockContext.args = ['--all', '--skip-check'];
+
+      await updateHandler.execute(mockContext);
+
+      // Should call UseHandler once with 'all'
+      expect(mockUseExecute).toHaveBeenCalledTimes(1);
+      const callCtx = mockUseExecute.mock.calls[0][0] as HandlerContext;
+      expect(callCtx.args[0]).toBe('all');
+    });
+
+    it('should return dry run info when --dry-run is passed', async () => {
+      mockContext.args = ['--dry-run', '--skip-check'];
+
+      const result = await updateHandler.execute(mockContext);
+
+      expect(result.exitCode).toBe(0);
+      expect(mockUseExecute).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors from forceUpdateCheck gracefully', async () => {
+      const { forceUpdateCheck } = await import('../../../../src/update/checker.mjs');
+      (forceUpdateCheck as any).mockRejectedValueOnce(new Error('Network error'));
+
+      // Should still proceed with re-deployment
+      const result = await updateHandler.execute(mockContext);
+
+      expect(mockUseExecute).toHaveBeenCalled();
+      expect(result.exitCode).toBe(0);
+    });
+
+    it('should skip update check when --skip-check is passed', async () => {
+      const { forceUpdateCheck } = await import('../../../../src/update/checker.mjs');
+      mockContext.args = ['--skip-check'];
+
+      await updateHandler.execute(mockContext);
+
+      expect(forceUpdateCheck).not.toHaveBeenCalled();
+      expect(mockUseExecute).toHaveBeenCalled();
+    });
+
+    it('should report failure when a framework fails to re-deploy', async () => {
+      mockContext.args = ['--skip-check'];
+      mockUseExecute
+        .mockResolvedValueOnce({ exitCode: 0 })  // sdlc succeeds
+        .mockResolvedValueOnce({ exitCode: 1 });  // marketing fails
 
       const result = await updateHandler.execute(mockContext);
 
       expect(result.exitCode).toBe(1);
-      expect(result.error).toBe(testError);
-      expect(result.message).toMatch(/update check failed/i);
+      expect(result.message).toMatch(/marketing/);
     });
   });
 
