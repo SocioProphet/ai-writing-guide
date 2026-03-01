@@ -38,6 +38,17 @@ smallest useful chunks to agents.
 - [ ] Chunks reference source path and heading
 - [ ] Index rebuild logged with timestamp
 
+## Artifact Index Integration
+
+Use `aiwg index` CLI commands for structured artifact discovery:
+
+- `aiwg index build` — Rebuild the artifact index after changes
+- `aiwg index query "<topic>" --json` — Find artifacts by keyword
+- `aiwg index stats --json` — Get project health metrics
+- `aiwg index deps <path> --json` — Check artifact dependencies
+
+Always use `--json` flag for programmatic consumption. See @agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md for the full protocol.
+
 ## Schema References
 
 - @agentic/code/frameworks/sdlc-complete/schemas/flows/auto-retrieval.yaml — Automatic retrieval for RAG pipelines

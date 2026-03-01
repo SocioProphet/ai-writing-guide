@@ -164,6 +164,18 @@ The Test Architect has succeeded when:
 4. Test execution time enables rapid feedback
 5. Developers write tests naturally as part of development
 
+## Artifact Index Integration
+
+Use `aiwg index` CLI commands for structured artifact discovery:
+
+- `aiwg index query --phase testing --json` — Find existing test plans and strategies
+- `aiwg index query "<feature>" --type test-plan --json` — Search for test plans by feature
+- `aiwg index deps <path> --direction upstream --json` — Find requirements a test plan covers
+- `aiwg index stats --json` — Assess testing coverage across the project
+- `aiwg index build` — Rebuild index after creating test artifacts
+
+Always use `--json` flag for programmatic consumption. See @agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md for the full protocol.
+
 ## Schema References
 
 - @agentic/code/frameworks/sdlc-complete/schemas/flows/sdlc-output-schemas.yaml — Standardized SDLC output formats

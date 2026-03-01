@@ -331,6 +331,14 @@
       "tier": "sdlc",
       "description": "Runtime guardrails preventing agents from creating or enlarging files beyond agent-friendly limits",
       "issue": "#405"
+    },
+    {
+      "name": "artifact-discovery",
+      "file": "artifact-discovery.md",
+      "enforcement": "high",
+      "tier": "sdlc",
+      "description": "Agent protocol for using aiwg index CLI as self-service artifact discovery tool",
+      "issue": "#419"
     }
   ]
 }

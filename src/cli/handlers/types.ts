@@ -82,7 +82,8 @@ export type CommandCategory =
   | 'scaffolding'   // Scaffolding (add-agent, scaffold-addon, etc.)
   | 'channel'       // Channel management
   | 'maintenance'   // Maintenance (doctor, version, update, help)
-  | 'ralph';        // Ralph loop
+  | 'ralph'         // Ralph loop
+  | 'index';        // Artifact index
 
 /**
  * Handler factory function type

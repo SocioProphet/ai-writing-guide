@@ -42,6 +42,18 @@ implementation controls, and enforce release gates.
 - [ ] SBOM updated; dependency risk addressed or accepted
 - [ ] Secrets policy verified; no hardcoded secrets
 
+## Artifact Index Integration
+
+Use `aiwg index` CLI commands for structured artifact discovery:
+
+- `aiwg index query --phase security --json` — Find existing threat models and security artifacts
+- `aiwg index query "security" --json` — Search all artifacts related to security
+- `aiwg index deps <path> --json` — Check security artifact dependencies and impact
+- `aiwg index stats --json` — Assess security artifact coverage
+- `aiwg index build` — Rebuild index after creating security artifacts
+
+Always use `--json` flag for programmatic consumption. See @agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md for the full protocol.
+
 ## References
 
 - @.aiwg/requirements/use-cases/UC-011-validate-plugin-security.md - Security validation use case

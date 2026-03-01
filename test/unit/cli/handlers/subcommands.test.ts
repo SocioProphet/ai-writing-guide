@@ -37,6 +37,12 @@ vi.mock("../../../../src/catalog/cli.mjs", () => ({
   main: mockCatalogMain,
 }));
 
+// Mock artifact index CLI module
+const mockIndexMain = vi.fn().mockResolvedValue(undefined);
+vi.mock("../../../../src/artifacts/cli.js", () => ({
+  main: mockIndexMain,
+}));
+
 // Import handlers after mocks are set up
 import {
   mcpHandler,
@@ -49,6 +55,7 @@ import {
   pluginStatusHandler,
   packagePluginHandler,
   packageAllPluginsHandler,
+  indexHandler,
   subcommandHandlers,
 } from "../../../../src/cli/handlers/subcommands.js";
 
@@ -330,9 +337,49 @@ describe("Subcommand Handlers", () => {
     });
   });
 
+  describe("indexHandler", () => {
+    it("should have correct metadata", () => {
+      expect(indexHandler.id).toBe("index");
+      expect(indexHandler.category).toBe("index");
+      expect(indexHandler.aliases).toEqual([]);
+      expect(indexHandler.name).toBe("Artifact Index");
+      expect(indexHandler.description).toMatch(/artifact index/i);
+    });
+
+    it("should handle dynamic import, subcommands, success, and errors", async () => {
+      // Test dynamic import and call
+      mockContext.args = ["build", "--force"];
+      await indexHandler.execute(mockContext);
+      expect(mockIndexMain).toHaveBeenCalledWith(["build", "--force"]);
+
+      // Test multiple subcommands
+      const subcommands = ["build", "query", "deps", "stats"];
+      for (const subcmd of subcommands) {
+        vi.clearAllMocks();
+        mockContext.args = [subcmd];
+        await indexHandler.execute(mockContext);
+        expect(mockIndexMain).toHaveBeenCalledWith([subcmd]);
+      }
+
+      // Test success
+      vi.clearAllMocks();
+      mockContext.args = [];
+      const successResult = await indexHandler.execute(mockContext);
+      expect(successResult.exitCode).toBe(0);
+
+      // Test error handling
+      const testError = new Error("Index failed");
+      mockIndexMain.mockRejectedValueOnce(testError);
+      const errorResult = await indexHandler.execute(mockContext);
+      expect(errorResult.exitCode).toBe(1);
+      expect(errorResult.error).toBe(testError);
+      expect(errorResult.message).toMatch(/index command failed/i);
+    });
+  });
+
   describe("subcommandHandlers array", () => {
     it("should export all subcommand handlers with correct IDs", () => {
-      expect(subcommandHandlers).toHaveLength(10);
+      expect(subcommandHandlers).toHaveLength(11);
 
       const handlerIds = subcommandHandlers.map((h) => h.id);
       const expectedIds = [
@@ -346,6 +393,7 @@ describe("Subcommand Handlers", () => {
         "plugin-status",
         "package-plugin",
         "package-all-plugins",
+        "index",
       ];
 
       for (const expectedId of expectedIds) {
@@ -387,6 +435,7 @@ describe("Subcommand Handlers", () => {
         { id: "mcp", category: "mcp" },
         { id: "catalog", category: "catalog" },
         { id: "new", category: "project" },
+        { id: "index", category: "index" },
       ];
       for (const { id, category } of specificCategories) {
         const handler = subcommandHandlers.find((h) => h.id === id);
@@ -399,6 +448,15 @@ describe("Subcommand Handlers", () => {
     it("list handler should return success when registry is available", async () => {
       const result = await listHandler.execute(mockContext);
       expect(result.exitCode).toBe(0);
+    });
+
+    it("index handler should wrap errors in HandlerResult", async () => {
+      const indexError = new Error("Import failed");
+      mockIndexMain.mockRejectedValueOnce(indexError);
+      const indexResult = await indexHandler.execute(mockContext);
+      expect(indexResult.exitCode).toBe(1);
+      expect(indexResult.error).toBe(indexError);
+      expect(indexResult.message).toBeDefined();
     });
 
     it("mcp and catalog handlers should wrap errors in HandlerResult", async () => {

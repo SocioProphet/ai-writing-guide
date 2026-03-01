@@ -368,6 +368,39 @@ export const packageAllPluginsHandler: CommandHandler = {
 };
 
 /**
+ * Artifact index command handler
+ *
+ * Dynamically imports and delegates to src/artifacts/cli.mjs.
+ * Handles subcommands: build, query, deps, stats
+ *
+ * @implements #420
+ */
+export const indexHandler: CommandHandler = {
+  id: "index",
+  name: "Artifact Index",
+  description: "Artifact index commands (build, query, deps, stats)",
+  category: "index",
+  aliases: [],
+
+  async execute(ctx: HandlerContext): Promise<HandlerResult> {
+    try {
+      const { main } = await import("../../artifacts/cli.js");
+      await main(ctx.args);
+
+      return {
+        exitCode: 0,
+      };
+    } catch (error) {
+      return {
+        exitCode: 1,
+        message: `Index command failed: ${error instanceof Error ? error.message : String(error)}`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  },
+};
+
+/**
  * All subcommand handlers
  */
 export const subcommandHandlers: CommandHandler[] = [
@@ -381,4 +414,5 @@ export const subcommandHandlers: CommandHandler[] = [
   pluginStatusHandler,
   packagePluginHandler,
   packageAllPluginsHandler,
+  indexHandler,
 ];

@@ -1,0 +1,305 @@
+/**
+ * Artifact Index Builder
+ *
+ * Scans .aiwg/ directories, extracts metadata from artifact frontmatter,
+ * computes checksums, extracts @-mention dependencies, and builds a
+ * structured index at .aiwg/.index/.
+ *
+ * @implements #415
+ * @source @src/artifacts/types.ts
+ * @tests @test/unit/artifacts/index-builder.test.ts
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { createHash } from 'crypto';
+import { load as loadYaml } from 'js-yaml';
+import type { MetadataEntry, ArtifactIndex, TagIndex, DependencyGraph } from './types.js';
+import { INDEX_VERSION, INDEX_DIR, PHASE_DIRECTORIES } from './types.js';
+import { writeIndexFile, loadMetadataIndex } from './index-reader.js';
+
+export interface BuildOptions {
+  force?: boolean;
+  verbose?: boolean;
+  scope?: string;
+}
+
+/**
+ * Parse YAML frontmatter from markdown content
+ */
+export function parseFrontmatter(content: string): { data: Record<string, unknown>; body: string } {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+  if (!match) return { data: {}, body: content };
+  try {
+    const data = (loadYaml(match[1]) ?? {}) as Record<string, unknown>;
+    return { data, body: match[2] };
+  } catch {
+    return { data: {}, body: content };
+  }
+}
+
+/**
+ * Extract @-mention references from content
+ */
+export function extractMentions(content: string): string[] {
+  const mentions = new Set<string>();
+  // Match @path/to/file.ext and @.aiwg/path patterns
+  const pattern = /@(\.?aiwg\/[\w./-]+|[a-zA-Z][\w./-]+\.\w+)/g;
+  let match;
+  while ((match = pattern.exec(content)) !== null) {
+    mentions.add(match[1]);
+  }
+  return Array.from(mentions);
+}
+
+/**
+ * Extract title from content (first # heading or frontmatter title)
+ */
+function extractTitle(data: Record<string, unknown>, body: string): string {
+  if (typeof data.title === 'string') return data.title;
+  const headingMatch = body.match(/^#\s+(.+)$/m);
+  return headingMatch ? headingMatch[1].trim() : 'Untitled';
+}
+
+/**
+ * Extract summary from content (first 500 chars of description or body)
+ */
+function extractSummary(data: Record<string, unknown>, body: string): string {
+  if (typeof data.description === 'string') return data.description.slice(0, 500);
+  // Skip headings, get first paragraph
+  const lines = body.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+  return lines.slice(0, 5).join(' ').slice(0, 500).trim();
+}
+
+/**
+ * Determine SDLC phase from file path
+ */
+function inferPhase(filePath: string): string {
+  for (const [phase, dir] of Object.entries(PHASE_DIRECTORIES)) {
+    if (filePath.startsWith(dir)) return phase;
+  }
+  return 'other';
+}
+
+/**
+ * Determine artifact type from frontmatter or filename
+ */
+function inferType(data: Record<string, unknown>, filePath: string): string {
+  if (typeof data.type === 'string') return data.type;
+  const basename = path.basename(filePath, path.extname(filePath)).toLowerCase();
+  if (basename.startsWith('uc-') || basename.includes('use-case')) return 'use-case';
+  if (basename.startsWith('adr-') || basename.includes('adr')) return 'adr';
+  if (basename.startsWith('tp-') || basename.includes('test-plan')) return 'test-plan';
+  if (basename.startsWith('tc-') || basename.includes('test-case')) return 'test-case';
+  if (basename.startsWith('tm-') || basename.includes('threat')) return 'threat-model';
+  if (basename.startsWith('nfr-') || basename.includes('nfr')) return 'nfr';
+  if (basename.includes('sad') || basename.includes('architecture')) return 'architecture';
+  if (basename.includes('risk')) return 'risk';
+  if (basename.includes('deploy')) return 'deployment';
+  return 'document';
+}
+
+/**
+ * Compute truncated SHA-256 checksum (16 hex chars)
+ */
+function computeChecksum(content: string): string {
+  return createHash('sha256').update(content).digest('hex').slice(0, 16);
+}
+
+/**
+ * Recursively find all indexable files under a directory
+ */
+function findArtifactFiles(dir: string, extensions: string[] = ['.md', '.yaml', '.json']): string[] {
+  const results: string[] = [];
+  if (!fs.existsSync(dir)) return results;
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      // Skip hidden dirs and .index
+      if (entry.name.startsWith('.')) continue;
+      results.push(...findArtifactFiles(fullPath, extensions));
+    } else if (extensions.some(ext => entry.name.endsWith(ext))) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+/**
+ * Build the artifact index
+ */
+export async function buildIndex(
+  cwd: string,
+  options: BuildOptions = {}
+): Promise<void> {
+  const { force = false, verbose = false, scope } = options;
+  const startTime = Date.now();
+
+  const scanDir = scope ? path.join(cwd, scope) : path.join(cwd, '.aiwg');
+  if (!fs.existsSync(scanDir)) {
+    console.error(`Error: Directory not found: ${scanDir}`);
+    console.log('Run this command from a project with .aiwg/ artifacts.');
+    process.exit(1);
+  }
+
+  // Load existing index for incremental updates
+  const existingIndex = force ? null : loadMetadataIndex(cwd);
+  const existingEntries = existingIndex?.entries ?? {};
+
+  const files = findArtifactFiles(scanDir);
+  const entries: Record<string, MetadataEntry> = {};
+  const tagIndex: TagIndex = {};
+  const depGraph: DependencyGraph = {};
+
+  let newCount = 0;
+  let updatedCount = 0;
+  let unchangedCount = 0;
+
+  for (const fullPath of files) {
+    const relativePath = path.relative(cwd, fullPath);
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    const checksum = computeChecksum(content);
+
+    // Skip unchanged files in incremental mode
+    if (!force && existingEntries[relativePath]?.checksum === checksum) {
+      entries[relativePath] = existingEntries[relativePath];
+      unchangedCount++;
+      if (verbose) console.log(`  unchanged: ${relativePath}`);
+      continue;
+    }
+
+    const stat = fs.statSync(fullPath);
+    const { data, body } = parseFrontmatter(content);
+    const title = extractTitle(data, body);
+    const phase = typeof data.phase === 'string' ? data.phase : inferPhase(relativePath);
+    const type = inferType(data, relativePath);
+    const tags = Array.isArray(data.tags) ? data.tags.map(String) : [];
+    const summary = extractSummary(data, body);
+    const dependencies = extractMentions(content);
+
+    const entry: MetadataEntry = {
+      path: relativePath,
+      type,
+      phase,
+      title,
+      tags,
+      created: typeof data.created === 'string' ? data.created : stat.birthtime.toISOString(),
+      updated: stat.mtime.toISOString(),
+      checksum,
+      summary,
+      dependencies,
+      dependents: [], // Computed after all entries are processed
+    };
+
+    entries[relativePath] = entry;
+
+    if (existingEntries[relativePath]) {
+      updatedCount++;
+      if (verbose) console.log(`  updated: ${relativePath}`);
+    } else {
+      newCount++;
+      if (verbose) console.log(`  new: ${relativePath}`);
+    }
+  }
+
+  // Build tag reverse index
+  for (const entry of Object.values(entries)) {
+    for (const tag of entry.tags) {
+      if (!tagIndex[tag]) tagIndex[tag] = [];
+      tagIndex[tag].push(entry.path);
+    }
+  }
+
+  // Build dependency graph and compute dependents
+  for (const entry of Object.values(entries)) {
+    if (!depGraph[entry.path]) {
+      depGraph[entry.path] = { upstream: [], downstream: [] };
+    }
+
+    for (const dep of entry.dependencies) {
+      // Normalize: check if referenced path exists in the index
+      const normalizedDep = Object.keys(entries).find(
+        p => p === dep || p.endsWith(dep)
+      );
+      if (normalizedDep && normalizedDep !== entry.path) {
+        depGraph[entry.path].upstream.push(normalizedDep);
+
+        if (!depGraph[normalizedDep]) {
+          depGraph[normalizedDep] = { upstream: [], downstream: [] };
+        }
+        depGraph[normalizedDep].downstream.push(entry.path);
+
+        // Also update the dependents field on the target entry
+        if (entries[normalizedDep]) {
+          entries[normalizedDep].dependents.push(entry.path);
+        }
+      }
+    }
+  }
+
+  // Deduplicate dependents
+  for (const entry of Object.values(entries)) {
+    entry.dependents = [...new Set(entry.dependents)];
+  }
+
+  const buildTimeMs = Date.now() - startTime;
+
+  // Write index files
+  const index: ArtifactIndex = {
+    version: INDEX_VERSION,
+    builtAt: new Date().toISOString(),
+    buildTimeMs,
+    entries,
+  };
+
+  writeIndexFile(cwd, 'metadata.json', index);
+  writeIndexFile(cwd, 'tags.json', tagIndex);
+  writeIndexFile(cwd, 'dependencies.json', depGraph);
+
+  // Write stats
+  const totalEdges = Object.values(depGraph).reduce(
+    (sum, node) => sum + node.downstream.length, 0
+  );
+  const orphaned = Object.entries(depGraph).filter(
+    ([, node]) => node.upstream.length === 0 && node.downstream.length === 0
+  ).length;
+  const mostReferenced = Object.entries(depGraph)
+    .map(([p, node]) => ({ path: p, count: node.downstream.length }))
+    .sort((a, b) => b.count - a.count)[0] ?? null;
+
+  const byPhase: Record<string, number> = {};
+  const byType: Record<string, number> = {};
+  const tagDist: Record<string, number> = {};
+
+  for (const entry of Object.values(entries)) {
+    byPhase[entry.phase] = (byPhase[entry.phase] || 0) + 1;
+    byType[entry.type] = (byType[entry.type] || 0) + 1;
+    for (const tag of entry.tags) {
+      tagDist[tag] = (tagDist[tag] || 0) + 1;
+    }
+  }
+
+  writeIndexFile(cwd, 'stats.json', {
+    version: INDEX_VERSION,
+    builtAt: new Date().toISOString(),
+    buildTimeMs,
+    totalArtifacts: Object.keys(entries).length,
+    byPhase,
+    byType,
+    tagDistribution: tagDist,
+    graphMetrics: {
+      totalEdges,
+      orphanedArtifacts: orphaned,
+      mostReferenced,
+    },
+  });
+
+  // Report
+  const total = Object.keys(entries).length;
+  console.log(`Artifact index built in ${buildTimeMs}ms`);
+  console.log(`  Indexed ${newCount} new, updated ${updatedCount}, unchanged ${unchangedCount}`);
+  console.log(`  Total: ${total} artifacts`);
+  console.log(`  Output: ${INDEX_DIR}/`);
+}

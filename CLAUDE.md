@@ -39,7 +39,7 @@ src/                         # CLI and MCP server implementation
 test/                        # Test suites and fixtures
 tools/                       # Build and deployment scripts
 docs/                        # Documentation
-├── cli-reference.md         # All 42 CLI commands
+├── cli-reference.md         # All 44 CLI commands
 ├── extensions/              # Extension system docs
 │   ├── overview.md
 │   ├── creating-extensions.md
@@ -128,7 +128,7 @@ aiwg new my-project    # Scaffold new project
 aiwg help              # Show all commands
 aiwg doctor            # Check installation health
 
-# See @docs/cli-reference.md for all 42 commands
+# See @docs/cli-reference.md for all 44 commands
 ```
 
 ## Project Artifacts (.aiwg/)
@@ -177,9 +177,9 @@ AIWG uses a unified extension system for all extension types:
 - `@docs/extensions/creating-extensions.md` - Build custom extensions
 - `@docs/extensions/extension-types.md` - Complete type reference
 - `@src/extensions/types.ts` - TypeScript type definitions
-- `@src/extensions/commands/definitions.ts` - All 42 command definitions
+- `@src/extensions/commands/definitions.ts` - All 44 command definitions
 
-## CLI Commands (42 Total)
+## CLI Commands (44 Total)
 
 **See `@docs/cli-reference.md` for complete documentation.**
 
@@ -201,6 +201,8 @@ AIWG uses a unified extension system for all extension types:
 | **Metrics** (3) | cost-report, cost-history, metrics-tokens |
 | **Documentation** (1) | doc-sync |
 | **SDLC Orchestration** (1) | sdlc-accelerate |
+| **Code Analysis** (1) | cleanup-audit |
+| **Index** (1) | index (build, query, deps, stats) |
 | **Reproducibility** (4) | execution-mode, snapshot, checkpoint, reproducibility-validate |
 
 ### Quick Reference
@@ -257,6 +259,13 @@ aiwg doc-sync full --interactive      # Bidirectional reconciliation
 aiwg sdlc-accelerate "Project description"  # Idea to construction-ready
 aiwg sdlc-accelerate --from-codebase .      # From existing code
 aiwg sdlc-accelerate --resume               # Resume pipeline
+
+# Artifact index
+aiwg index build                         # Build/rebuild artifact index
+aiwg index build --force --verbose       # Full rebuild with progress
+aiwg index query "authentication" --json # Search artifacts
+aiwg index deps .aiwg/requirements/UC-001.md --json  # Show dependencies
+aiwg index stats --json                  # Index statistics
 
 # Reproducibility
 aiwg execution-mode          # Show/set execution mode

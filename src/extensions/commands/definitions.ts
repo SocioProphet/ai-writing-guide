@@ -95,10 +95,10 @@ export const updateCommand: Extension = {
   id: 'update',
   type: 'command',
   name: 'Update',
-  description: 'Check for and apply updates',
+  description: 'Update AIWG and re-deploy installed frameworks from registry',
   version: '1.0.0',
-  capabilities: ['cli', 'update', 'maintenance'],
-  keywords: ['update', 'upgrade', 'maintenance'],
+  capabilities: ['cli', 'update', 'maintenance', 'deploy', 'refresh'],
+  keywords: ['update', 'upgrade', 'maintenance', 'refresh', 'redeploy'],
   category: 'maintenance',
   platforms: {
     claude: 'full',
@@ -111,7 +111,14 @@ export const updateCommand: Extension = {
   metadata: {
     type: 'command',
     template: 'utility',
-    allowedTools: ['Bash'],
+    allowedTools: ['Bash', 'Read'],
+    argumentHint: '[--all] [--dry-run] [--provider <name>] [--skip-check]',
+    executionSteps: [
+      'Check for npm/git updates',
+      'Read .aiwg/frameworks/registry.json',
+      'Re-deploy installed frameworks',
+      'Report update summary',
+    ],
   } satisfies CommandMetadata,
 };
 
@@ -359,6 +366,33 @@ export const catalogCommand: Extension = {
     template: 'utility',
     argumentHint: '<subcommand>',
     allowedTools: ['Read'],
+  } satisfies CommandMetadata,
+};
+
+// Index Commands
+
+export const indexCommand: Extension = {
+  id: 'index',
+  type: 'command',
+  name: 'Artifact Index',
+  description: 'Artifact index commands (build, query, deps, stats)',
+  version: '1.0.0',
+  capabilities: ['cli', 'index', 'artifacts', 'search', 'dependencies'],
+  keywords: ['index', 'artifacts', 'query', 'deps', 'dependencies', 'stats', 'search'],
+  category: 'index',
+  platforms: {
+    claude: 'full',
+    generic: 'full',
+  },
+  deployment: {
+    pathTemplate: '.{platform}/commands/{id}.md',
+    core: true,
+  },
+  metadata: {
+    type: 'command',
+    template: 'utility',
+    argumentHint: '<subcommand> [options]',
+    allowedTools: ['Read', 'Glob', 'Grep'],
   } satisfies CommandMetadata,
 };
 
@@ -969,6 +1003,41 @@ export const docSyncCommand: Extension = {
   } satisfies CommandMetadata,
 };
 
+// Code Analysis Commands
+
+export const cleanupAuditCommand: Extension = {
+  id: 'cleanup-audit',
+  type: 'command',
+  name: 'Cleanup Audit',
+  description: 'Audit codebase for dead code, unused exports, orphaned files, and stale manifests',
+  version: '1.0.0',
+  capabilities: ['cli', 'analysis', 'code-quality', 'dead-code', 'cleanup'],
+  keywords: ['cleanup', 'dead-code', 'unused', 'orphan', 'audit', 'depcheck'],
+  category: 'maintenance',
+  platforms: {
+    claude: 'full',
+    generic: 'full',
+  },
+  deployment: {
+    pathTemplate: '.{platform}/commands/{id}.md',
+    core: false,
+  },
+  metadata: {
+    type: 'command',
+    template: 'utility',
+    argumentHint: '[--scope <path>] [--type <exports|files|deps|manifests>] [--json] [--fix] [--dry-run]',
+    allowedTools: ['Bash', 'Read', 'Write', 'Glob', 'Grep'],
+    executionSteps: [
+      'Determine analysis scope',
+      'Analyze unused exports',
+      'Detect orphaned files',
+      'Audit dependencies',
+      'Check manifest entries',
+      'Compile confidence-rated report',
+    ],
+  } satisfies CommandMetadata,
+};
+
 // SDLC Orchestration Commands
 
 export const sdlcAccelerateCommand: Extension = {
@@ -1112,7 +1181,7 @@ export const reproducibilityValidateCommand: Extension = {
 // ============================================
 
 /**
- * All command definitions (42 total)
+ * All command definitions (44 total)
  *
  * Organized by category:
  * - Maintenance (4): help, version, doctor, update
@@ -1128,7 +1197,9 @@ export const reproducibilityValidateCommand: Extension = {
  * - Ralph (4): ralph, ralph-status, ralph-abort, ralph-resume
  * - Metrics (3): cost-report, cost-history, metrics-tokens
  * - Documentation (1): doc-sync
+ * - Code Analysis (1): cleanup-audit
  * - SDLC Orchestration (1): sdlc-accelerate
+ * - Index (1): index
  * - Reproducibility (4): execution-mode, snapshot, checkpoint, reproducibility-validate
  */
 export const commandDefinitions: Extension[] = [
@@ -1195,8 +1266,14 @@ export const commandDefinitions: Extension[] = [
   // Documentation (1)
   docSyncCommand,
 
+  // Code Analysis (1)
+  cleanupAuditCommand,
+
   // SDLC Orchestration (1)
   sdlcAccelerateCommand,
+
+  // Index (1)
+  indexCommand,
 
   // Reproducibility (4)
   executionModeCommand,

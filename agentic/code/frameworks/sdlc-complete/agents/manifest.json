@@ -26,6 +26,7 @@
     "cost-optimizer.md",
     "data-engineer.md",
     "database-optimizer.md",
+    "dead-code-analyzer.md",
     "debugger.md",
     "decision-matrix-expert.md",
     "deployment-manager.md",

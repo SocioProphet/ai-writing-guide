@@ -26,6 +26,7 @@ Complete reference for all `aiwg` CLI commands.
 - [Ralph Commands](#ralph-commands)
 - [Documentation Commands](#documentation-commands)
 - [SDLC Orchestration Commands](#sdlc-orchestration-commands)
+- [Index Commands](#index-commands)
 
 ---
 
@@ -1654,6 +1655,185 @@ aiwg sdlc-accelerate --auto "Quick prototype"
 
 ---
 
+## Index Commands
+
+Commands for building and querying the artifact index. The index provides structured, pre-computed metadata about `.aiwg/` artifacts, enabling agents and developers to discover, search, and navigate project artifacts without manual file searching.
+
+### index
+
+Artifact index commands (build, query, deps, stats).
+
+```bash
+aiwg index <subcommand> [options]
+```
+
+**Subcommands:**
+- `build` - Build/rebuild the artifact index
+- `query` - Search artifacts by keyword, type, phase, tags
+- `deps` - Show artifact dependency graph
+- `stats` - Show index statistics
+
+**Capabilities:** cli, index, artifacts, search, dependencies
+**Platforms:** All
+**Tools:** Read, Glob, Grep
+
+---
+
+### index build
+
+Build or rebuild the artifact index by scanning `.aiwg/` directories.
+
+```bash
+aiwg index build [options]
+```
+
+**Options:**
+- `--force` - Full rebuild (ignore checksums, re-index everything)
+- `--verbose` - Show detailed progress during indexing
+- `--scope <dir>` - Limit scan to a specific subdirectory
+
+**Behavior:**
+- Scans `.aiwg/` for `.md`, `.yaml`, and `.json` files
+- Extracts YAML frontmatter metadata (title, type, phase, tags)
+- Computes SHA-256 checksums for incremental indexing
+- Extracts @-mention dependencies from file content
+- Writes index files to `.aiwg/.index/`
+
+**Incremental mode** (default): Only re-indexes files whose checksum has changed since the last build. Use `--force` for a full rebuild.
+
+**Examples:**
+
+```bash
+# Incremental build (fast - skips unchanged files)
+aiwg index build
+
+# Full rebuild
+aiwg index build --force
+
+# Verbose output
+aiwg index build --verbose
+
+# Scope to requirements only
+aiwg index build --scope requirements
+```
+
+**Output files:**
+- `.aiwg/.index/metadata.json` - Artifact metadata entries
+- `.aiwg/.index/tags.json` - Tag index
+- `.aiwg/.index/deps.json` - Dependency graph
+- `.aiwg/.index/stats.json` - Index statistics
+
+---
+
+### index query
+
+Search artifacts by keyword, type, phase, tags, or path pattern.
+
+```bash
+aiwg index query [search-text] [options]
+```
+
+**Arguments:**
+- `[search-text]` - Optional keyword search (weighted: title 3x, tags 2x, summary 1x, path 0.5x)
+
+**Options:**
+- `--type <type>` - Filter by artifact type (e.g., `use-case`, `adr`, `test-plan`)
+- `--phase <phase>` - Filter by SDLC phase (e.g., `requirements`, `architecture`, `testing`)
+- `--tags <tag1,tag2>` - Filter by tags (AND logic — all tags must match)
+- `--path <glob>` - Filter by file path glob pattern
+- `--updated-after <date>` - Filter by last-modified date
+- `--limit <n>` - Maximum number of results
+- `--json` - Output as JSON (recommended for agents)
+
+**Examples:**
+
+```bash
+# Keyword search
+aiwg index query "authentication"
+
+# Filter by type
+aiwg index query --type use-case
+
+# Filter by phase
+aiwg index query --phase testing
+
+# Combined filters
+aiwg index query "login" --type use-case --phase requirements
+
+# JSON output for agents
+aiwg index query "auth" --json
+
+# Limit results
+aiwg index query --tags security --limit 5
+```
+
+---
+
+### index deps
+
+Show artifact dependency graph based on @-mention references.
+
+```bash
+aiwg index deps <path> [options]
+```
+
+**Arguments:**
+- `<path>` - Path to the artifact (e.g., `.aiwg/requirements/UC-001.md`)
+
+**Options:**
+- `--direction <dir>` - Direction: `upstream`, `downstream`, or `both` (default: `both`)
+- `--depth <n>` - Maximum traversal depth (default: 3)
+- `--json` - Output as JSON (recommended for agents)
+
+**Behavior:**
+- `upstream` - What this artifact depends on (its @-mentions)
+- `downstream` - What depends on this artifact (mentions it)
+- `both` - Both directions
+
+**Examples:**
+
+```bash
+# Show all dependencies
+aiwg index deps .aiwg/requirements/UC-001.md
+
+# Downstream only (what would break if I change this?)
+aiwg index deps .aiwg/requirements/UC-001.md --direction downstream
+
+# JSON output with limited depth
+aiwg index deps .aiwg/architecture/adr-001.md --depth 2 --json
+```
+
+---
+
+### index stats
+
+Show artifact index statistics and project health metrics.
+
+```bash
+aiwg index stats [options]
+```
+
+**Options:**
+- `--json` - Output as JSON (recommended for agents)
+
+**Reports:**
+- Artifact counts by SDLC phase and type
+- Tag distribution
+- Dependency graph metrics (edges, orphaned artifacts)
+- Index coverage (indexed vs. total files)
+
+**Examples:**
+
+```bash
+# Human-readable stats
+aiwg index stats
+
+# JSON output for agents
+aiwg index stats --json
+```
+
+---
+
 ## Extension System
 
 ### Unified Extension Schema
@@ -1699,9 +1879,11 @@ All commands are registered as extensions in the unified schema. This enables:
 | **Metrics** | 3 | cost-report, cost-history, metrics-tokens |
 | **Documentation** | 1 | doc-sync |
 | **SDLC Orchestration** | 1 | sdlc-accelerate |
+| **Code Analysis** | 1 | cleanup-audit |
+| **Index** | 1 | index (4 subcommands) |
 | **Reproducibility** | 4 | execution-mode, snapshot, checkpoint, reproducibility-validate |
 
-**Total:** 42 commands
+**Total:** 44 commands
 
 ---
 
