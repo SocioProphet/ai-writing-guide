@@ -1562,3 +1562,175 @@ mark.hl {
   color: var(--color-text-muted);
   margin-bottom: var(--space-4);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Mobile Responsive Overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* --- Tables: horizontal scroll wrapper on small screens --- */
+@media (width < 1024px) {
+  .doc-content table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* --- Tablet (768px-1023px) --- */
+@media (width < 1024px) {
+  /* Main panel needs more padding on tablets */
+  .main-panel {
+    padding: var(--space-3);
+  }
+
+  /* Ensure touch targets meet 44x44px minimum */
+  .drawer-toggle,
+  .mobile-menu-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .footer__links button,
+  .footer__links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Sidebar nav links need adequate tap targets */
+  .sidebar .nav a,
+  .sidebar .link-list a,
+  .sidebar .help-list li {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* --- Mobile (below 768px) --- */
+@media (width < 768px) {
+  /* Reduce main panel padding */
+  .main-panel {
+    padding: var(--space-2);
+  }
+
+  /* Status bar: hide non-essential elements */
+  .status-bar .separator,
+  .status-bar .mode {
+    display: none;
+  }
+
+  .status-bar .context {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Footer: stack console and links vertically */
+  .footer {
+    flex-direction: column;
+    height: auto;
+    min-height: var(--footer-height);
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .console {
+    width: 100%;
+  }
+
+  .console__input {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .footer__links {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* Status strip: truncate and reduce padding */
+  .status-strip {
+    padding: 0 var(--space-2);
+    font-size: 0.6875rem;
+    gap: var(--space-2);
+    overflow: hidden;
+  }
+
+  .status-strip > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Adjust page grid for taller footer */
+  .page {
+    grid-template-rows:
+      var(--header-height)
+      1fr
+      var(--status-height)
+      auto;
+  }
+
+  /* Doc content: smaller font sizes for narrow screens */
+  .doc-content h1 {
+    font-size: 1.25rem;
+  }
+
+  .doc-content h2 {
+    font-size: 1.1rem;
+  }
+
+  /* Bottom navigation: stack vertically */
+  .bottom-nav {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .bottom-nav-next {
+    margin-left: 0;
+  }
+
+  /* Command palette full-width on mobile */
+  .cmd-surface {
+    width: 95%;
+    max-width: none;
+    margin: var(--space-4) auto;
+  }
+
+  /* Card grid: single column */
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Small mobile (below 480px) --- */
+@media (width < 480px) {
+  .main-panel {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  /* Hide context entirely on very small screens */
+  .status-bar .context {
+    display: none;
+  }
+
+  .status-bar__content {
+    gap: var(--space-2);
+  }
+
+  /* Reduce code block padding */
+  .doc-content pre {
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .doc-content th,
+  .doc-content td {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+}
