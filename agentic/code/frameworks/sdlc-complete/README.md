@@ -73,4 +73,4 @@ aiwg new my-project
 
 ## Usage
 
-See the parent repository's `CLAUDE.md` and `USAGE_GUIDE.md` for comprehensive usage instructions.
+See the parent repository's `CLAUDE.md` and `docs/quickstart.md` for comprehensive usage instructions.

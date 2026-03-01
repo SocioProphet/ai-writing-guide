@@ -206,14 +206,14 @@ See [Platform Integration Guides](docs/integrations/) for setup instructions.
 
 ### Getting Started
 
-- **[Quick Start Guide](USAGE_GUIDE.md)** — Context selection and basic usage
+- **[Quick Start Guide](docs/quickstart.md)** — Install and deploy in minutes
 - **[Prerequisites](docs/getting-started/prerequisites.md)** — Node.js, AI platforms, OS support
 - **[CLI Reference](docs/cli-reference.md)** — All 42 `aiwg` commands with examples
 
 ### By Audience Level
 
 **Practitioners:**
-- [Quick Start Guide](USAGE_GUIDE.md) — Hands-on workflows
+- [Quick Start Guide](docs/quickstart.md) — Hands-on workflows
 - [Ralph Loop Guide](docs/ralph-guide.md) — Iterative execution
 - [Platform Guides](docs/integrations/) — 5-10 minute setup
 
@@ -305,7 +305,7 @@ AIWG is optimized for token efficiency. Most users on **Claude Pro** or similar 
 
 **MIT License** — Free to use, modify, and distribute. See [LICENSE](LICENSE).
 
-**Important:** This framework does not provide legal, security, or financial advice. All generated content should be reviewed before use. See [TERMS.md](TERMS.md) for full disclaimers.
+**Important:** This framework does not provide legal, security, or financial advice. All generated content should be reviewed before use. See [Terms of Use](docs/terms.md) for full disclaimers.
 
 ---
 

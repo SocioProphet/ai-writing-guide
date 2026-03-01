@@ -8,12 +8,12 @@
 The AIWG framework ("the Software") is an **agent toolset and prompting framework** for process automation, provided under the MIT License as open-source software.
 
 **Current Features:**
-- **Writing Quality utilities** — Remove AI detection patterns, validate content
-- **SDLC Complete framework** — Comprehensive agents, commands, and templates for software lifecycle management
-
-**Future Expansion:**
-- Additional process frameworks (business analysis, content strategy, research synthesis, decision-making, etc.)
-- See roadmap for planned frameworks
+- **SDLC Complete framework** — 85+ agents, 75+ commands, and templates for software lifecycle management
+- **Forensics Complete framework** — Digital forensics and incident response with 13 agents
+- **Media Marketing Kit** — Full marketing operations framework
+- **Research Complete framework** — Research workflow automation
+- **Writing Quality utilities** — AI pattern detection, voice profiles, content validation
+- **Codebase Manageability tooling** — Code health analysis and complexity enforcement
 
 By installing, deploying, or using this software, you agree to these terms.
 
@@ -186,7 +186,7 @@ The Software is licensed under the **MIT License** (see LICENSE file). You may:
 
 ## Data Collection and Privacy
 
-**We collect zero data.** See [PRIVACY.md](./PRIVACY.md) for full details.
+**We collect zero data.** See [Privacy Policy](./privacy.md) for full details.
 
 **Your AI provider collects data.** See their privacy policies:
 
@@ -251,7 +251,7 @@ The Software is licensed under the **MIT License** (see LICENSE file). You may:
 
 ## Entire Agreement
 
-**These terms, the MIT License, and PRIVACY.md** constitute the entire agreement regarding the Software.
+**These terms, the MIT License, and Privacy Policy** constitute the entire agreement regarding the Software.
 
 ## Contact
 

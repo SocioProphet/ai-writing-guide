@@ -34,8 +34,7 @@
     "templates/",
     "plugins/",
     "man/",
-    "CLAUDE.md",
-    "USAGE_GUIDE.md"
+    "CLAUDE.md"
   ],
   "repository": {
     "type": "git",

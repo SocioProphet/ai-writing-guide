@@ -99,7 +99,10 @@
     "releases/v2024.12.3-announcement",
     "releases/v2024.12.2-announcement",
     "releases/v2024.12.1-announcement",
-    "releases/v0.9.1-announcement"
+    "releases/v0.9.1-announcement",
+    "legal",
+    "privacy",
+    "terms"
   ],
   "sections": [
     {
@@ -776,6 +779,25 @@
       "summary": "Initial release",
       "file": "releases/v0.9.1-announcement.md",
       "parent": "releases"
+    },
+    {
+      "id": "legal",
+      "title": "Legal",
+      "summary": "Privacy and terms"
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy Policy",
+      "summary": "Zero data collection policy",
+      "file": "privacy.md",
+      "parent": "legal"
+    },
+    {
+      "id": "terms",
+      "title": "Terms of Use",
+      "summary": "Usage terms and license",
+      "file": "terms.md",
+      "parent": "legal"
     },
     {
       "title": "GitHub",
