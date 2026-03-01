@@ -1,0 +1,55 @@
+# Doc Site Deploy
+#
+# Builds and deploys the documentation site on new release tags.
+# Runs independently from npm-publish and gitea-release workflows.
+
+name: Docsite Deploy
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy-docs:
+    name: Build & Deploy Documentation
+    runs-on: ubuntu-latest
+    container: node:20
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout AIWG
+        uses: actions/checkout@v4
+
+      - name: Clone dbbuilder
+        run: |
+          git clone https://git.integrolabs.net/roctinam/dbbuilder.git /tmp/dbbuilder
+
+      - name: Install dbbuilder dependencies
+        working-directory: /tmp/dbbuilder/apps/publisher
+        run: npm ci
+
+      - name: Configure tenant
+        run: |
+          cat > /tmp/dbbuilder/apps/publisher/tenants.json <<'TENANTS'
+          [
+            {
+              "id": "aiwg-docs",
+              "source": {
+                "type": "local",
+                "path": "${{ gitea.workspace }}/docs"
+              },
+              "domains": ["docs.aiwg.io"],
+              "strictLinks": false
+            }
+          ]
+          TENANTS
+
+      - name: Build doc site
+        working-directory: /tmp/dbbuilder/apps/publisher
+        run: node scripts/build-tenants.js aiwg-docs
+
+      - name: Deploy to docs server
+        run: |
+          echo "TODO: SSH/rsync deployment"
+          echo "Requires DOCS_DEPLOY_KEY secret and server details"
+          # rsync -avz --delete /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/ user@docs-server:/var/www/docs.aiwg.io/
