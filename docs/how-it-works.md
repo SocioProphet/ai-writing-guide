@@ -57,13 +57,13 @@ The same framework source gets transformed into the right format for each platfo
 └─────────────────────┘
 ```
 
-## 2. Rules and Skills as Semantic Memory
+## 2. Tools for Building, Memory as a Byproduct
 
-Once deployed, rules and skills act as the AI's persistent memory across sessions.
+AIWG gives your AI assistant operational tools — rules, commands, skills, and agents — that help you manage your project and build things. As you use them, they generate **semantic memory** in the `.aiwg/` directory. The tools do the work; the memory is what accumulates.
 
 ### Rules: Behavioral Guardrails
 
-Rules are instructions the AI follows every time it works in your project. They load automatically based on what the AI is doing.
+Rules keep the AI consistent across sessions. They're not memory — they're constraints the AI follows every time it works in your project.
 
 Some rules are always active:
 - **No attribution** — Never add "Generated with AI" to commits or code
@@ -72,17 +72,17 @@ Some rules are always active:
 
 Other rules activate based on context. When the AI edits files in `src/`, development-specific rules load. When it edits markdown files, writing quality rules load. This is called **path-scoped activation**.
 
-### Skills: Reusable Workflows
+### Commands and Skills: Getting Things Done
 
-Skills are multi-step workflows the AI can invoke. Unlike commands (which are explicit), skills activate when natural language matches their trigger patterns.
+Commands are explicit actions you invoke — `/address-issues`, `/commit-and-push`, `/security-audit`. Skills work the same way but activate from natural language instead of slash syntax.
 
 For example, saying "run a security review" activates the security audit skill, which:
 1. Scans the codebase for common vulnerabilities
 2. Checks dependencies for known CVEs
 3. Reviews authentication and authorization patterns
-4. Generates a findings report
+4. Generates a findings report saved to `.aiwg/security/`
 
-The AI doesn't need to be told the steps — the skill encodes the entire workflow.
+The AI doesn't need to be told the steps — the skill encodes the entire workflow. And the output — the findings report, the threat model, the test plan — becomes part of your project's semantic memory in `.aiwg/`.
 
 ### Agents: Specialized Personas
 
@@ -93,6 +93,10 @@ Agents give the AI a specific expertise profile. When a "Test Engineer" agent is
 - References testing documentation
 
 Think of agents as job descriptions for the AI — they define what the AI knows and what tools it can use for a specific role.
+
+### The Memory Accumulates
+
+As you use these tools across sessions, `.aiwg/` fills up with real project artifacts: requirements, architecture decisions, test strategies, risk registers. Each new session reads this directory and picks up where the last one left off. The tools build your project; the memory gives it continuity.
 
 ## 3. The Prompt Architecture
 
@@ -191,6 +195,23 @@ The `.aiwg/` directory is where AIWG stores your project's living documents:
     └── registry.json # Tracks what's deployed
 ```
 
+### The Intake Process: Seeding the Memory
+
+A fresh `.aiwg/` directory is empty — there's no memory yet. The **intake process** is how you establish the initial set.
+
+You can start intake in several ways:
+- `/intake-wizard "Build a customer dashboard"` — generate intake from a project description
+- `/intake-from-codebase .` — analyze an existing codebase and generate intake from what's already there
+- Fill out the templates manually and run `/intake-start` to validate them
+
+However you start, AIWG walks through structured questions about your project: what problem you're solving, who it's for, what constraints exist, what testing strategy to use, what non-functional requirements matter (security posture, scale expectations, compliance needs).
+
+The answers become your first artifacts — a **project intake form** (problem, scope, constraints, testing strategy), a **solution profile** (technical approach, architecture preferences), and an **option matrix** (trade-offs between alternatives). These documents land in `.aiwg/intake/` and seed the project memory with enough context that every subsequent AI session understands the project from the start.
+
+Without intake, the AI has tools but no project knowledge. With intake, it has both — and every phase that follows (requirements, architecture, testing) builds on that foundation rather than starting from scratch.
+
+This is why intake matters even if you're eager to start coding. The time spent answering intake questions saves hours of re-explaining context across future sessions.
+
 ### Why This Matters
 
 When a new AI session starts, it reads `.aiwg/` to understand:
@@ -283,10 +304,9 @@ This web of linked artifacts means the AI can answer questions like "what tests 
 ## Key Takeaways
 
 1. **AIWG is an injection system** — it deploys context files into directories your AI reads
-2. **Rules enforce consistency** — behavioral constraints persist across sessions
-3. **Skills encode workflows** — complex processes become one-line commands
-4. **`.aiwg/` is project memory** — living documents that create session continuity
-5. **Flows coordinate agents** — multi-step processes with quality gates
-6. **It works across platforms** — same framework, adapted for Claude, Copilot, Cursor, and more
+2. **Rules, commands, skills, and agents are tools** — they help you manage your project and build things
+3. **`.aiwg/` is the memory** — artifacts accumulate as a byproduct of using the tools, creating session continuity
+4. **Flows coordinate agents** — multi-step processes with quality gates
+5. **It works across platforms** — same framework, adapted for Claude, Copilot, Cursor, and more
 
-The net effect: your AI assistant goes from a capable but forgetful tool to a knowledgeable team member that follows your standards, remembers your project state, and can execute complex workflows on command.
+The net effect: your AI assistant goes from a capable but forgetful tool to a knowledgeable team member that follows your standards, builds real artifacts, and remembers your project state across sessions.
