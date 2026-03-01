@@ -124,6 +124,7 @@ jobs:
 
   performance-check:
     name: Validation Performance
+    needs: validate-metadata
     runs-on: ubuntu-latest
     container: node:20
     timeout-minutes: 5
