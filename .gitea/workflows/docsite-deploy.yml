@@ -48,8 +48,42 @@ jobs:
         working-directory: /tmp/dbbuilder/apps/publisher
         run: node scripts/build-tenants.js aiwg-docs
 
-      - name: Deploy to docs server
+      - name: Verify build output
         run: |
-          echo "TODO: SSH/rsync deployment"
-          echo "Requires DOCS_DEPLOY_KEY secret and server details"
-          # rsync -avz --delete /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/ user@docs-server:/var/www/docs.aiwg.io/
+          test -d /tmp/dbbuilder/apps/publisher/dist/aiwg-docs || { echo "Missing build output directory"; exit 1; }
+          test -f /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/index.html || { echo "Missing index.html"; exit 1; }
+          echo "Build verification passed"
+          ls -lah /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/
+
+      - name: Install SSH tools
+        run: apt-get update && apt-get install -y --no-install-recommends openssh-client rsync
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.SSH_DEPLOY_KEY }}' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy to integro-dev-004
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p 2424 -o StrictHostKeyChecking=accept-new" \
+            /tmp/dbbuilder/apps/publisher/dist/aiwg-docs/ \
+            roctinam@66.94.104.191:/home/roctinam/production-deploy/docs-aiwg-io/
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key -p 2424 -o StrictHostKeyChecking=accept-new \
+            roctinam@66.94.104.191 \
+            'test -f /home/roctinam/production-deploy/docs-aiwg-io/index.html && echo "Deploy verified: index.html present" || { echo "Deploy failed: index.html missing"; exit 1; }'
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Log deployment result
+        if: success()
+        run: |
+          echo "Deployed docs.aiwg.io to integro-dev-004 (66.94.104.191)"
+          echo "Tag: ${{ gitea.ref }}"
+          echo "Commit: ${{ gitea.sha }}"
