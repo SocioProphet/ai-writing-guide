@@ -150,6 +150,41 @@ export async function switchToEdge() {
 }
 
 /**
+ * Switch to dev mode (use local repo as framework source)
+ * @param {string} devPath - Path to the local development repository
+ */
+export async function switchToDev(devPath) {
+  const config = await loadConfig();
+
+  const resolvedPath = path.resolve(devPath);
+
+  console.log('Switching to dev mode (local repository source)...');
+  console.log('');
+
+  // Verify the path looks like an AIWG repo
+  try {
+    await fs.access(path.join(resolvedPath, 'agentic', 'code', 'frameworks'));
+  } catch {
+    console.error(`Error: ${resolvedPath} does not appear to be an AIWG repository.`);
+    console.error('Expected to find agentic/code/frameworks/ directory.');
+    process.exit(1);
+  }
+
+  config.channel = 'edge';
+  config.edgePath = resolvedPath;
+  config.devMode = true;
+  await saveConfig(config);
+
+  console.log('Switched to dev mode.');
+  console.log(`Framework source: ${resolvedPath}`);
+  console.log('');
+  console.log('Commands:');
+  console.log('  aiwg use all          Deploy from local source');
+  console.log('  aiwg version          Verify dev mode active');
+  console.log('  aiwg --use-stable     Switch back to npm package');
+}
+
+/**
  * Switch to stable (npm) channel
  */
 export async function switchToStable() {
@@ -159,6 +194,7 @@ export async function switchToStable() {
   console.log('');
 
   config.channel = 'stable';
+  config.devMode = false;
   await saveConfig(config);
 
   console.log('Switched to stable channel.');
@@ -184,6 +220,7 @@ export async function getVersionInfo() {
     version: packageJson.version,
     channel: config.channel,
     packageRoot,
+    devMode: config.devMode || false,
   };
 
   if (config.channel === 'edge') {

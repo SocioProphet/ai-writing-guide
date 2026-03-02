@@ -360,6 +360,11 @@ aiwg validate-metadata
 
 # Check installation health
 aiwg doctor
+
+# Test local framework changes (see docs/development/dev-testing.md)
+aiwg --use-dev         # Point CLI at this repo
+aiwg use all           # Deploy from local source
+aiwg --use-stable      # Switch back to npm package
 ```
 
 ## Support

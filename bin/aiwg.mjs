@@ -41,6 +41,12 @@ async function main() {
     return;
   }
 
+  if (args[0] === '--use-dev') {
+    const { switchToDev } = await import('../src/channel/manager.mjs');
+    await switchToDev(packageRoot);
+    return;
+  }
+
   if (args[0] === '--use-stable' || args[0] === '--use-npm') {
     const { switchToStable } = await import('../src/channel/manager.mjs');
     await switchToStable();

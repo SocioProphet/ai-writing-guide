@@ -34,7 +34,7 @@ async function displayVersion(): Promise<void> {
   const info = await getVersionInfo();
 
   console.log(`aiwg version: ${info.version}`);
-  console.log(`Channel: ${info.channel}`);
+  console.log(`Channel: ${info.channel}${info.devMode ? ' (dev)' : ''}`);
 
   if (info.channel === 'edge' && info.gitHash) {
     console.log(`Git: ${info.gitHash} (${info.gitBranch})`);
