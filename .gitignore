@@ -58,7 +58,17 @@ TODO.local.md
 .cursor/
 .factory/
 .github/
-.aiwg/
+.opencode/
+.warp/
+.windsurf/
+
+# AIWG project artifacts — tracked in git (except ephemeral content)
+# .aiwg/ is NOT gitignored — it contains SDLC artifacts (ADRs, use cases, etc.)
+# The following subdirectories are ephemeral and excluded:
+.aiwg/working/
+.aiwg/.index/
+.aiwg/ralph/archive/
+.aiwg/ralph-external/loops/
 
 # Agent temporary files
 _agent-temp/

@@ -116,6 +116,17 @@ export async function switchToEdge() {
       execSync('git fetch --all', { cwd: config.edgePath, stdio: 'inherit' });
       execSync('git checkout main', { cwd: config.edgePath, stdio: 'inherit' });
       execSync('git pull --ff-only', { cwd: config.edgePath, stdio: 'inherit' });
+      // Ensure sparse checkout excludes .aiwg/ on existing installs
+      try {
+        const sparseConfig = path.join(config.edgePath, '.git', 'info', 'sparse-checkout');
+        const hasSparse = await fs.access(sparseConfig).then(() => true).catch(() => false);
+        if (!hasSparse) {
+          execSync('git sparse-checkout init --cone', { cwd: config.edgePath, stdio: 'pipe' });
+          execSync('git sparse-checkout set --no-cone "/*" "!/.aiwg"', { cwd: config.edgePath, stdio: 'pipe' });
+        }
+      } catch {
+        // Sparse checkout is optional — older git may not support it
+      }
       console.log('Edge installation updated successfully.');
     } catch (error) {
       console.error('Failed to update edge installation:', error.message);
@@ -130,6 +141,14 @@ export async function switchToEdge() {
     await fs.mkdir(path.dirname(config.edgePath), { recursive: true });
     try {
       execSync(`git clone --branch main ${REPO_URL} "${config.edgePath}"`, { stdio: 'inherit' });
+      // Exclude dogfooding artifacts from edge clones — users want framework source only
+      try {
+        execSync('git sparse-checkout init --cone', { cwd: config.edgePath, stdio: 'pipe' });
+        execSync('git sparse-checkout set --no-cone "/*" "!/.aiwg"', { cwd: config.edgePath, stdio: 'pipe' });
+      } catch {
+        // Sparse checkout is optional — older git versions may not support it
+        console.log('Note: sparse checkout not available, .aiwg/ will be present in edge install.');
+      }
       console.log('Edge installation created successfully.');
     } catch (error) {
       console.error('Failed to clone repository:', error.message);
