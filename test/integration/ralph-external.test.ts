@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { existsSync, mkdirSync, rmSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -544,5 +544,176 @@ describe('External Ralph Loop Integration', () => {
       expect(orchestrator.aborted).toBe(true);
       expect(killSpy).toHaveBeenCalled();
     });
+  });
+
+  describe('full launch e2e', () => {
+    // These tests use a real child_process.spawn() with a stub Node script
+    // instead of mocking sessionLauncher.launch(). This exercises the full
+    // pipeline: orchestrator → prompt generation → file write → real spawn →
+    // stdout/stderr capture → output analysis via pattern matching → state update.
+
+    it('should spawn real process, capture output, and complete one-shot task', async () => {
+      // Register stub provider so orchestrator.execute() uses it via createProvider('stub')
+      const { registerStubProvider } = await import('../fixtures/stub-provider-adapter.mjs');
+      registerStubProvider();
+
+      const orchestrator = new Orchestrator(testDir);
+
+      vi.spyOn(orchestrator.stateManager, 'setCurrentPid').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await orchestrator.execute({
+        objective: 'Reply with OK',
+        completionCriteria: 'Output contains OK',
+        maxIterations: 1,
+        provider: 'stub',
+        enableSnapshots: false,
+        enableCheckpoints: false,
+        enablePIDControl: false,
+        enableOverseer: false,
+        enableSemanticMemory: false,
+        enableClaudeIntelligence: false,
+        crossTask: false,
+        enableAnalytics: false,
+        enableBestOutput: false,
+        enableEarlyStopping: false,
+      });
+
+      // Verify orchestrator result
+      expect(result.success).toBe(true);
+      expect(result.iterations).toBe(1);
+      expect(result.loopId).toBeDefined();
+
+      // Verify state file exists and is correct
+      const state = orchestrator.stateManager.load();
+      expect(state?.status).toBe('completed');
+      expect(state?.iterations).toHaveLength(1);
+      expect(state?.iterations[0].exitCode).toBe(0);
+
+      // Verify file artifacts on disk
+      const stateDir = join(testDir, '.aiwg', 'ralph-external');
+      expect(existsSync(join(stateDir, 'session-state.json'))).toBe(true);
+
+      // Verify prompt was written
+      const promptPath = state?.iterations[0].promptFile;
+      expect(promptPath).toBeDefined();
+      if (promptPath && existsSync(promptPath)) {
+        const prompt = readFileSync(promptPath, 'utf8');
+        expect(prompt).toContain('Reply with OK');
+      }
+
+      // Verify stdout was captured from the real process
+      const stdoutPath = state?.iterations[0].stdoutFile;
+      expect(stdoutPath).toBeDefined();
+      if (stdoutPath && existsSync(stdoutPath)) {
+        const stdout = readFileSync(stdoutPath, 'utf8');
+        expect(stdout).toContain('ralph_external_completion');
+        expect(stdout).toContain('"success":true');
+      }
+
+      // Verify stderr file exists (may be empty)
+      const stderrPath = state?.iterations[0].stderrFile;
+      expect(stderrPath).toBeDefined();
+      if (stderrPath) {
+        expect(existsSync(stderrPath)).toBe(true);
+      }
+
+      // Verify completion report was generated
+      const reportPath = join(stateDir, 'completion-report.md');
+      expect(existsSync(reportPath)).toBe(true);
+      const report = readFileSync(reportPath, 'utf8');
+      expect(report).toContain('Reply with OK');
+    }, { timeout: 30000 });
+
+    it('should handle non-zero exit from spawned process', async () => {
+      // Register stub provider with --stub-fail flag
+      const { registerStubProvider } = await import('../fixtures/stub-provider-adapter.mjs');
+      registerStubProvider(['--stub-fail']);
+
+      const orchestrator = new Orchestrator(testDir);
+
+      vi.spyOn(orchestrator.stateManager, 'setCurrentPid').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await orchestrator.execute({
+        objective: 'Task that will fail',
+        completionCriteria: 'Should not complete',
+        maxIterations: 1,
+        provider: 'stub',
+        enableSnapshots: false,
+        enableCheckpoints: false,
+        enablePIDControl: false,
+        enableOverseer: false,
+        enableSemanticMemory: false,
+        enableClaudeIntelligence: false,
+        crossTask: false,
+        enableAnalytics: false,
+        enableBestOutput: false,
+        enableEarlyStopping: false,
+      });
+
+      // With maxIterations: 1 and no completion marker, should reach limit
+      expect(result.success).toBe(false);
+      expect(result.iterations).toBe(1);
+
+      // Verify state reflects the failure
+      const state = orchestrator.stateManager.load();
+      expect(state?.iterations).toHaveLength(1);
+      expect(state?.iterations[0].exitCode).toBe(1);
+
+      // Verify stdout was still captured (stub emits lines before exiting)
+      const stdoutPath = state?.iterations[0].stdoutFile;
+      if (stdoutPath && existsSync(stdoutPath)) {
+        const stdout = readFileSync(stdoutPath, 'utf8');
+        expect(stdout).toContain('Working on the task');
+        // Should NOT contain completion marker
+        expect(stdout).not.toContain('ralph_external_completion');
+      }
+    }, { timeout: 30000 });
+
+    it('should handle crash output from spawned process', async () => {
+      // Register stub provider with --stub-crash flag
+      const { registerStubProvider } = await import('../fixtures/stub-provider-adapter.mjs');
+      registerStubProvider(['--stub-crash']);
+
+      const orchestrator = new Orchestrator(testDir);
+
+      vi.spyOn(orchestrator.stateManager, 'setCurrentPid').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await orchestrator.execute({
+        objective: 'Task that crashes',
+        completionCriteria: 'Should not complete',
+        maxIterations: 1,
+        provider: 'stub',
+        enableSnapshots: false,
+        enableCheckpoints: false,
+        enablePIDControl: false,
+        enableOverseer: false,
+        enableSemanticMemory: false,
+        enableClaudeIntelligence: false,
+        crossTask: false,
+        enableAnalytics: false,
+        enableBestOutput: false,
+        enableEarlyStopping: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.iterations).toBe(1);
+
+      // Verify stderr was captured
+      const state = orchestrator.stateManager.load();
+      const stderrPath = state?.iterations[0].stderrFile;
+      if (stderrPath && existsSync(stderrPath)) {
+        const stderr = readFileSync(stderrPath, 'utf8');
+        expect(stderr).toContain('unexpected termination');
+      }
+    }, { timeout: 30000 });
   });
 });
