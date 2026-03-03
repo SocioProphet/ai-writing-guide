@@ -114,7 +114,7 @@ export class Orchestrator {
     this.sessionLauncher = new SessionLauncher();
     this.outputAnalyzer = new OutputAnalyzer();
     this.promptGenerator = new PromptGenerator();
-    this.snapshotManager = new SnapshotManager({ projectRoot });
+    this.snapshotManager = new SnapshotManager(projectRoot);
     this.checkpointManager = null; // Created per-session with config
     this.stateAssessor = new StateAssessor({ projectRoot });
     this.aborted = false;
@@ -512,16 +512,9 @@ export class Orchestrator {
         // ========== PRE-SESSION SNAPSHOT ==========
         if (state.config.enableSnapshots) {
           console.log('[External Ralph] Capturing pre-session snapshot...');
-          this.currentPreSnapshot = await this.snapshotManager.capturePreSnapshot({
-            sessionId: state.sessionId,
-            iteration: state.currentIteration,
-            objective: state.objective,
-            keyFiles: state.config.keyFiles,
-          });
-          // Save snapshot to iteration directory
-          writeFileSync(
-            join(iterationDir, 'pre-snapshot.json'),
-            JSON.stringify(this.currentPreSnapshot, null, 2)
+          this.currentPreSnapshot = this.snapshotManager.capturePreSnapshot(
+            this.projectRoot,
+            iterationDir
           );
         }
 
@@ -769,12 +762,9 @@ export class Orchestrator {
         let postSnapshot = null;
         if (state.config.enableSnapshots && this.currentPreSnapshot) {
           console.log('[External Ralph] Capturing post-session snapshot...');
-          postSnapshot = await this.snapshotManager.capturePostSnapshot(this.currentPreSnapshot);
-
-          // Save snapshot and diff
-          writeFileSync(
-            join(iterationDir, 'post-snapshot.json'),
-            JSON.stringify(postSnapshot, null, 2)
+          postSnapshot = this.snapshotManager.capturePostSnapshot(
+            this.projectRoot,
+            iterationDir
           );
 
           const snapshotDiff = this.snapshotManager.calculateDiff(this.currentPreSnapshot, postSnapshot);
@@ -783,8 +773,11 @@ export class Orchestrator {
             JSON.stringify(snapshotDiff, null, 2)
           );
 
-          if (snapshotDiff.summary.totalChanges > 0) {
-            console.log(`[External Ralph] Changes detected: ${snapshotDiff.summary.totalChanges} (git: ${snapshotDiff.summary.gitChanges}, aiwg: ${snapshotDiff.summary.aiwgChanges})`);
+          const totalGitChanges = (snapshotDiff.filesAdded?.length || 0) + (snapshotDiff.filesModified?.length || 0) + (snapshotDiff.filesDeleted?.length || 0);
+          const totalAiwgChanges = (snapshotDiff.aiwgArtifactsCreated?.length || 0) + (snapshotDiff.aiwgArtifactsUpdated?.length || 0);
+          const totalChanges = totalGitChanges + totalAiwgChanges;
+          if (totalChanges > 0) {
+            console.log(`[External Ralph] Changes detected: ${totalChanges} (git: ${totalGitChanges}, aiwg: ${totalAiwgChanges})`);
           }
         }
 

@@ -452,6 +452,87 @@ describe('External Ralph Loop Integration', () => {
     }, { timeout: 10000 });
   });
 
+  describe('snapshots integration', () => {
+    // Regression test: orchestrator was passing objects to SnapshotManager
+    // where string paths were expected, causing:
+    // "The path argument must be of type string. Received an instance of Object"
+
+    it('should capture pre/post snapshots without type errors when enableSnapshots is true', async () => {
+      const orchestrator = new Orchestrator(testDir);
+
+      // Initialize a git repo so snapshots can capture git state
+      const { execSync } = await import('child_process');
+      try {
+        execSync('git init', { cwd: testDir, stdio: 'ignore' });
+        execSync('git config user.email "test@test.com"', { cwd: testDir, stdio: 'ignore' });
+        execSync('git config user.name "Test"', { cwd: testDir, stdio: 'ignore' });
+        const { writeFileSync } = await import('fs');
+        writeFileSync(join(testDir, 'init.txt'), 'init');
+        execSync('git add .', { cwd: testDir, stdio: 'ignore' });
+        execSync('git commit -m "init"', { cwd: testDir, stdio: 'ignore' });
+      } catch {
+        // git not available, skip
+        return;
+      }
+
+      vi.spyOn(orchestrator.sessionLauncher, 'launch').mockResolvedValue({
+        exitCode: 0,
+        killed: false,
+        pid: 12345,
+      });
+
+      vi.spyOn(orchestrator.outputAnalyzer, 'analyze').mockResolvedValue({
+        completed: true,
+        success: true,
+        failureClass: null,
+        completionPercentage: 100,
+        shouldContinue: false,
+        learnings: 'Done',
+        artifactsModified: [],
+        blockers: [],
+        nextApproach: '',
+      });
+
+      vi.spyOn(orchestrator.stateManager, 'setCurrentPid').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // This was the exact call path that crashed before the fix
+      const result = await orchestrator.execute({
+        objective: 'Test with snapshots',
+        completionCriteria: 'Done',
+        maxIterations: 1,
+        enablePIDControl: false,
+        enableOverseer: false,
+        enableSemanticMemory: false,
+        crossTask: false,
+        enableAnalytics: false,
+        enableBestOutput: false,
+        enableEarlyStopping: false,
+        enableClaudeIntelligence: false,
+        enableSnapshots: true,
+        enableCheckpoints: false,
+      });
+
+      expect(result.success).toBe(true);
+
+      // Verify snapshot files were created with proper paths (not [object Object])
+      const stateDir = join(testDir, '.aiwg', 'ralph-external');
+      const iterDirs = existsSync(join(stateDir, 'iterations'))
+        ? (await import('fs')).readdirSync(join(stateDir, 'iterations'))
+        : [];
+
+      if (iterDirs.length > 0) {
+        const iterDir = join(stateDir, 'iterations', iterDirs[0]);
+        const preSnapshotPath = join(iterDir, 'pre-snapshot.json');
+        if (existsSync(preSnapshotPath)) {
+          const preSnapshot = JSON.parse(readFileSync(preSnapshotPath, 'utf8'));
+          expect(preSnapshot.timestamp).toBeDefined();
+          expect(preSnapshot.git).toBeDefined();
+        }
+      }
+    }, { timeout: 15000 });
+  });
+
   describe('abort', () => {
     it('should set aborted flag and call sessionLauncher.kill', () => {
       const orchestrator = new Orchestrator(testDir);

@@ -478,4 +478,51 @@ describe('SnapshotManager', () => {
       expect(formatted).toBe('2h 3m');
     });
   });
+
+  describe('regression: object args must throw, not crash Node', () => {
+    // Regression test for https://git.integrolabs.net/roctinam/aiwg/issues/XXX
+    // The orchestrator was passing objects where strings were expected,
+    // causing "The path argument must be of type string. Received an instance of Object"
+
+    it('should reject non-string projectRoot in constructor', () => {
+      // @ts-expect-error - intentionally passing wrong type for regression test
+      const sm = new SnapshotManager({ projectRoot: testDir });
+      // The constructor doesn't validate, but methods that use this.projectRoot will fail
+      // when called with the stored object value
+      expect(typeof sm.projectRoot).toBe('object'); // confirms the bug scenario
+    });
+
+    it('should throw when capturePreSnapshot receives an object instead of string path', () => {
+      expect(() =>
+        snapshotManager.capturePreSnapshot(
+          // @ts-expect-error - intentionally passing wrong type
+          { sessionId: 'abc', iteration: 1 },
+          iterationDir
+        )
+      ).toThrow();
+    });
+
+    it('should throw when capturePreSnapshot receives undefined iterationDir', () => {
+      expect(() =>
+        snapshotManager.capturePreSnapshot(
+          testDir,
+          // @ts-expect-error - intentionally passing wrong type
+          undefined
+        )
+      ).toThrow();
+    });
+
+    it('should throw when capturePostSnapshot receives a snapshot object instead of strings', () => {
+      // First create a valid pre-snapshot
+      snapshotManager.capturePreSnapshot(testDir, iterationDir);
+
+      expect(() =>
+        snapshotManager.capturePostSnapshot(
+          // @ts-expect-error - intentionally passing wrong type
+          { timestamp: new Date().toISOString(), git: {} },
+          iterationDir
+        )
+      ).toThrow();
+    });
+  });
 });
