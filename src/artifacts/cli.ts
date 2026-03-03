@@ -7,10 +7,27 @@
  * - deps:  Show artifact dependency graph
  * - stats: Show index statistics
  *
- * @implements #420
+ * Supports multi-graph architecture via --graph flag:
+ * - framework: AIWG framework source (shared, built during `aiwg use`)
+ * - project: SDLC artifacts in .aiwg/ (per-project)
+ * - codebase: Source code, tests, configs (per-project)
+ *
+ * @implements #420 #421
  * @source @src/cli/handlers/subcommands.ts
  * @tests @test/unit/artifacts/cli.test.ts
  */
+
+import type { GraphType } from './types.js';
+
+/** Parse --graph flag from args, returns undefined for "all graphs" */
+function parseGraphFlag(args: string[]): GraphType | undefined {
+  const idx = args.indexOf('--graph');
+  if (idx === -1 || idx + 1 >= args.length) return undefined;
+  const val = args[idx + 1];
+  if (val === 'framework' || val === 'project' || val === 'codebase') return val;
+  console.error(`Error: Invalid graph type '${val}'. Valid: framework, project, codebase`);
+  process.exit(1);
+}
 
 /**
  * Main index command router
@@ -45,12 +62,17 @@ export async function main(args: string[]): Promise<void> {
       console.log('  deps    Show artifact dependency graph');
       console.log('  stats   Show index statistics');
       console.log('');
+      console.log('Options:');
+      console.log('  --graph <type>  Target a specific graph (framework, project, codebase)');
+      console.log('');
       console.log('Examples:');
       console.log('  aiwg index build');
-      console.log('  aiwg index build --force --verbose');
+      console.log('  aiwg index build --graph codebase --force');
       console.log('  aiwg index query "authentication" --type use-case');
+      console.log('  aiwg index query "security rules" --graph framework --json');
       console.log('  aiwg index deps .aiwg/requirements/UC-001.md');
       console.log('  aiwg index stats --json');
+      console.log('  aiwg index stats --graph project');
       process.exit(1);
       break;
 
@@ -73,6 +95,7 @@ async function handleBuild(args: string[]): Promise<void> {
 
   const force = args.includes('--force');
   const verbose = args.includes('--verbose');
+  const graph = parseGraphFlag(args);
 
   let scope: string | undefined;
   const scopeIdx = args.indexOf('--scope');
@@ -80,7 +103,14 @@ async function handleBuild(args: string[]): Promise<void> {
     scope = args[scopeIdx + 1];
   }
 
-  await buildIndex(cwd, { force, verbose, scope });
+  if (graph) {
+    // Build a specific graph
+    await buildIndex(cwd, { force, verbose, scope, graph });
+  } else {
+    // Default: build project + codebase (framework is built via `aiwg use`)
+    await buildIndex(cwd, { force, verbose, scope, graph: 'project' });
+    await buildIndex(cwd, { force, verbose, graph: 'codebase' });
+  }
 }
 
 /**
@@ -128,6 +158,8 @@ async function handleQuery(args: string[]): Promise<void> {
     else if (flags[i] === '--path' && i + 1 < flags.length) { pathPattern = flags[++i]; }
   }
 
+  const graph = parseGraphFlag(flags);
+
   await queryIndex(cwd, {
     text,
     type,
@@ -136,7 +168,7 @@ async function handleQuery(args: string[]): Promise<void> {
     updatedAfter,
     limit,
     path: pathPattern,
-  }, { json });
+  }, { json, graph });
 }
 
 /**
@@ -173,7 +205,9 @@ async function handleDeps(args: string[]): Promise<void> {
     depth = parseInt(args[depthIdx + 1], 10);
   }
 
-  await showDeps(cwd, artifactPath, { direction, depth, json });
+  const graph = parseGraphFlag(args);
+
+  await showDeps(cwd, artifactPath, { direction, depth, json, graph });
 }
 
 /**
@@ -187,5 +221,7 @@ async function handleStats(args: string[]): Promise<void> {
 
   const json = args.includes('--json');
 
-  await showStats(cwd, { json });
+  const graph = parseGraphFlag(args);
+
+  await showStats(cwd, { json, graph });
 }

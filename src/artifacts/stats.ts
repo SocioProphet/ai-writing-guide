@@ -10,23 +10,29 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadIndexStats, indexExists } from './index-reader.js';
+import type { GraphType, IndexStats } from './types.js';
+import { GRAPH_CONFIGS } from './types.js';
+import { loadIndexStats, indexExists, loadGraphIndexFile } from './index-reader.js';
 
 export interface StatsOptions {
   json?: boolean;
+  graph?: GraphType;
 }
 
 /**
- * Count total .md/.yaml/.json files under .aiwg/ (excluding .index/)
+ * Count total indexable files under scan directories (excluding .index/)
  */
-function countArtifactFiles(cwd: string): number {
-  const aiwgDir = path.join(cwd, '.aiwg');
-  if (!fs.existsSync(aiwgDir)) return 0;
+function countArtifactFiles(cwd: string, graphType?: GraphType): number {
+  const config = graphType ? GRAPH_CONFIGS[graphType] : undefined;
+  const scanDirs = config
+    ? config.scanDirs.map(d => path.join(cwd, d))
+    : [path.join(cwd, '.aiwg')];
+  const extensions = config?.extensions ?? ['.md', '.yaml', '.json'];
 
   let count = 0;
-  const extensions = ['.md', '.yaml', '.json'];
 
   function walk(dir: string): void {
+    if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
@@ -39,7 +45,9 @@ function countArtifactFiles(cwd: string): number {
     }
   }
 
-  walk(aiwgDir);
+  for (const dir of scanDirs) {
+    walk(dir);
+  }
   return count;
 }
 
@@ -50,13 +58,17 @@ export async function showStats(
   cwd: string,
   options: StatsOptions = {}
 ): Promise<void> {
-  if (!indexExists(cwd)) {
+  const { graph } = options;
+
+  if (!graph && !indexExists(cwd)) {
     console.error('Error: No artifact index found.');
     console.log("Run 'aiwg index build' first to create the index.");
     process.exit(1);
   }
 
-  const stats = loadIndexStats(cwd);
+  const stats = graph
+    ? loadGraphIndexFile<IndexStats>(cwd, 'stats.json', graph)
+    : loadIndexStats(cwd);
   if (!stats) {
     console.error('Error: Failed to load index statistics.');
     process.exit(1);
@@ -64,7 +76,7 @@ export async function showStats(
 
   if (options.json) {
     // Add coverage info
-    const totalFiles = countArtifactFiles(cwd);
+    const totalFiles = countArtifactFiles(cwd, graph);
     console.log(JSON.stringify({
       ...stats,
       coverage: {
@@ -121,7 +133,7 @@ export async function showStats(
   console.log('');
 
   // Coverage
-  const totalFiles = countArtifactFiles(cwd);
+  const totalFiles = countArtifactFiles(cwd, graph);
   const coverage = totalFiles > 0
     ? Math.round((stats.totalArtifacts / totalFiles) * 100)
     : 100;

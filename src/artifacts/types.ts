@@ -179,3 +179,81 @@ export const INDEX_DIR = '.aiwg/.index';
  * Current index format version
  */
 export const INDEX_VERSION = '1.0.0';
+
+/**
+ * Graph types for multi-graph index architecture
+ *
+ * @implements #421
+ */
+export type GraphType = 'framework' | 'project' | 'codebase';
+
+/**
+ * Graph configuration — defines what each graph indexes
+ */
+export interface GraphConfig {
+  /** Graph type identifier */
+  type: GraphType;
+
+  /** Directories to scan (relative to project/framework root) */
+  scanDirs: string[];
+
+  /** File extensions to index */
+  extensions: string[];
+
+  /** Whether this graph is shared across projects */
+  shared: boolean;
+}
+
+/**
+ * Graph definitions
+ */
+export const GRAPH_CONFIGS: Record<GraphType, GraphConfig> = {
+  framework: {
+    type: 'framework',
+    scanDirs: ['agentic/code/frameworks', 'agentic/code/addons', 'agentic/code/agents', 'docs'],
+    extensions: ['.md', '.yaml', '.json'],
+    shared: true,
+  },
+  project: {
+    type: 'project',
+    scanDirs: ['.aiwg'],
+    extensions: ['.md', '.yaml', '.json'],
+    shared: false,
+  },
+  codebase: {
+    type: 'codebase',
+    scanDirs: ['src', 'test', 'tools'],
+    extensions: ['.ts', '.mts', '.js', '.mjs', '.json', '.yaml'],
+    shared: false,
+  },
+};
+
+/**
+ * Get the index output directory for a given graph type
+ *
+ * @param cwd - Project root
+ * @param graphType - Graph type
+ * @returns Absolute path to the graph's index directory
+ */
+export function getGraphIndexDir(cwd: string, graphType: GraphType): string {
+  if (graphType === 'framework') {
+    // Shared across projects — XDG data directory
+    const xdgData = process.env.XDG_DATA_HOME ?? `${process.env.HOME}/.local/share`;
+    return `${xdgData}/aiwg/index/framework`;
+  }
+  return `${cwd}/.aiwg/.index/${graphType}`;
+}
+
+/**
+ * Framework graph version tracking
+ */
+export interface FrameworkGraphVersion {
+  /** AIWG version when graph was built */
+  aiwg_version: string;
+
+  /** Frameworks included in the graph */
+  frameworks_installed: string[];
+
+  /** Build timestamp */
+  built_at: string;
+}

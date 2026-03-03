@@ -10,11 +10,12 @@
  */
 
 import { minimatch } from 'minimatch';
-import type { QueryParams, QueryResult, MetadataEntry } from './types.js';
-import { loadMetadataIndex, indexExists } from './index-reader.js';
+import type { QueryParams, QueryResult, MetadataEntry, GraphType, ArtifactIndex } from './types.js';
+import { loadMetadataIndex, indexExists, loadGraphIndexFile } from './index-reader.js';
 
 export interface QueryOptions {
   json?: boolean;
+  graph?: GraphType;
 }
 
 /**
@@ -64,14 +65,18 @@ export async function queryIndex(
   params: QueryParams,
   options: QueryOptions = {}
 ): Promise<void> {
-  if (!indexExists(cwd)) {
+  const { graph } = options;
+
+  if (!graph && !indexExists(cwd)) {
     console.error('Error: No artifact index found.');
     console.log("Run 'aiwg index build' first to create the index.");
     process.exit(1);
   }
 
   const startTime = Date.now();
-  const index = loadMetadataIndex(cwd);
+  const index = graph
+    ? loadGraphIndexFile<ArtifactIndex>(cwd, 'metadata.json', graph)
+    : loadMetadataIndex(cwd);
   if (!index) {
     console.error('Error: Failed to load artifact index.');
     process.exit(1);

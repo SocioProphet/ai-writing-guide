@@ -14,14 +14,16 @@ import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import { load as loadYaml } from 'js-yaml';
-import type { MetadataEntry, ArtifactIndex, TagIndex, DependencyGraph } from './types.js';
-import { INDEX_VERSION, INDEX_DIR, PHASE_DIRECTORIES } from './types.js';
-import { writeIndexFile, loadMetadataIndex } from './index-reader.js';
+import type { MetadataEntry, ArtifactIndex, TagIndex, DependencyGraph, GraphType } from './types.js';
+import { INDEX_VERSION, INDEX_DIR, PHASE_DIRECTORIES, GRAPH_CONFIGS } from './types.js';
+import { writeIndexFile, resolveIndexDir, loadGraphIndexFile } from './index-reader.js';
 
 export interface BuildOptions {
   force?: boolean;
   verbose?: boolean;
   scope?: string;
+  outputDir?: string; // Override index output directory (default: <cwd>/.aiwg/.index/)
+  graph?: GraphType;  // Target a specific graph (default: project for backward compat)
 }
 
 /**
@@ -134,21 +136,60 @@ export async function buildIndex(
   cwd: string,
   options: BuildOptions = {}
 ): Promise<void> {
-  const { force = false, verbose = false, scope } = options;
+  const { force = false, verbose = false, scope, outputDir, graph } = options;
   const startTime = Date.now();
 
-  const scanDir = scope ? path.join(cwd, scope) : path.join(cwd, '.aiwg');
-  if (!fs.existsSync(scanDir)) {
-    console.error(`Error: Directory not found: ${scanDir}`);
-    console.log('Run this command from a project with .aiwg/ artifacts.');
+  // Determine scan directories based on graph type
+  const graphConfig = graph ? GRAPH_CONFIGS[graph] : undefined;
+  let scanDirs: string[];
+  let fileExtensions: string[];
+
+  if (scope) {
+    // Explicit scope overrides graph config
+    scanDirs = [path.join(cwd, scope)];
+    fileExtensions = ['.md', '.yaml', '.json'];
+  } else if (graphConfig) {
+    scanDirs = graphConfig.scanDirs.map(d => path.join(cwd, d));
+    fileExtensions = graphConfig.extensions;
+  } else {
+    // Default: scan .aiwg/ (backward compatible)
+    scanDirs = [path.join(cwd, '.aiwg')];
+    fileExtensions = ['.md', '.yaml', '.json'];
+  }
+
+  // Verify at least one scan directory exists
+  const existingDirs = scanDirs.filter(d => fs.existsSync(d));
+  if (existingDirs.length === 0) {
+    console.error(`Error: No scan directories found: ${scanDirs.join(', ')}`);
+    console.log('Run this command from a project with the required directories.');
     process.exit(1);
   }
 
+  // Determine output index directory
+  let indexOutputDir: string;
+  if (outputDir) {
+    // Test/custom override — write to outputDir/.aiwg/.index/ (or graph subdir)
+    indexOutputDir = graph
+      ? path.join(outputDir, '.aiwg', '.index', graph)
+      : path.join(outputDir, INDEX_DIR);
+  } else if (graph) {
+    indexOutputDir = resolveIndexDir(cwd, graph);
+  } else {
+    indexOutputDir = path.join(cwd, INDEX_DIR);
+  }
+  fs.mkdirSync(indexOutputDir, { recursive: true });
+  // effectiveOutputCwd is used for backward-compat loadMetadataIndex calls
+  const effectiveOutputCwd = outputDir ?? cwd;
+
   // Load existing index for incremental updates
-  const existingIndex = force ? null : loadMetadataIndex(cwd);
+  const existingIndex = force ? null : loadGraphIndexFile<ArtifactIndex>(effectiveOutputCwd, 'metadata.json', graph);
   const existingEntries = existingIndex?.entries ?? {};
 
-  const files = findArtifactFiles(scanDir);
+  // Collect files from all scan directories
+  const files: string[] = [];
+  for (const dir of existingDirs) {
+    files.push(...findArtifactFiles(dir, fileExtensions));
+  }
   const entries: Record<string, MetadataEntry> = {};
   const tagIndex: TagIndex = {};
   const depGraph: DependencyGraph = {};
@@ -254,9 +295,9 @@ export async function buildIndex(
     entries,
   };
 
-  writeIndexFile(cwd, 'metadata.json', index);
-  writeIndexFile(cwd, 'tags.json', tagIndex);
-  writeIndexFile(cwd, 'dependencies.json', depGraph);
+  writeIndexFile(effectiveOutputCwd, 'metadata.json', index, indexOutputDir);
+  writeIndexFile(effectiveOutputCwd, 'tags.json', tagIndex, indexOutputDir);
+  writeIndexFile(effectiveOutputCwd, 'dependencies.json', depGraph, indexOutputDir);
 
   // Write stats
   const totalEdges = Object.values(depGraph).reduce(
@@ -281,7 +322,7 @@ export async function buildIndex(
     }
   }
 
-  writeIndexFile(cwd, 'stats.json', {
+  writeIndexFile(effectiveOutputCwd, 'stats.json', {
     version: INDEX_VERSION,
     builtAt: new Date().toISOString(),
     buildTimeMs,
@@ -294,12 +335,13 @@ export async function buildIndex(
       orphanedArtifacts: orphaned,
       mostReferenced,
     },
-  });
+  }, indexOutputDir);
 
   // Report
   const total = Object.keys(entries).length;
   console.log(`Artifact index built in ${buildTimeMs}ms`);
   console.log(`  Indexed ${newCount} new, updated ${updatedCount}, unchanged ${unchangedCount}`);
   console.log(`  Total: ${total} artifacts`);
-  console.log(`  Output: ${INDEX_DIR}/`);
+  const displayDir = graph ? `${INDEX_DIR}/${graph}/` : `${INDEX_DIR}/`;
+  console.log(`  Output: ${displayDir}`);
 }

@@ -9,13 +9,14 @@
  * @tests @test/unit/artifacts/dep-graph.test.ts
  */
 
-import type { DependencyGraph } from './types.js';
-import { loadDependencyGraph, indexExists } from './index-reader.js';
+import type { DependencyGraph, GraphType } from './types.js';
+import { loadDependencyGraph, indexExists, loadGraphIndexFile } from './index-reader.js';
 
 export interface DepsOptions {
   direction?: 'upstream' | 'downstream' | 'both';
   depth?: number;
   json?: boolean;
+  graph?: GraphType;
 }
 
 interface TraversalResult {
@@ -92,21 +93,23 @@ export async function showDeps(
   artifactPath: string,
   options: DepsOptions = {}
 ): Promise<void> {
-  const { direction = 'both', depth = 3, json = false } = options;
+  const { direction = 'both', depth = 3, json = false, graph: graphType } = options;
 
-  if (!indexExists(cwd)) {
+  if (!graphType && !indexExists(cwd)) {
     console.error('Error: No artifact index found.');
     console.log("Run 'aiwg index build' first to create the index.");
     process.exit(1);
   }
 
-  const graph = loadDependencyGraph(cwd);
-  if (!graph) {
+  const depGraph = graphType
+    ? loadGraphIndexFile<DependencyGraph>(cwd, 'dependencies.json', graphType)
+    : loadDependencyGraph(cwd);
+  if (!depGraph) {
     console.error('Error: Failed to load dependency graph.');
     process.exit(1);
   }
 
-  if (!graph[artifactPath]) {
+  if (!depGraph[artifactPath]) {
     console.error(`Error: '${artifactPath}' not found in the dependency index.`);
     console.log('Check the path or run `aiwg index build` to refresh.');
     process.exit(1);
@@ -116,10 +119,10 @@ export async function showDeps(
   const showDownstream = direction === 'downstream' || direction === 'both';
 
   const upstreamResults = showUpstream
-    ? traverse(graph, artifactPath, 'upstream', depth, new Set([artifactPath]))
+    ? traverse(depGraph, artifactPath, 'upstream', depth, new Set([artifactPath]))
     : [];
   const downstreamResults = showDownstream
-    ? traverse(graph, artifactPath, 'downstream', depth, new Set([artifactPath]))
+    ? traverse(depGraph, artifactPath, 'downstream', depth, new Set([artifactPath]))
     : [];
 
   if (json) {
