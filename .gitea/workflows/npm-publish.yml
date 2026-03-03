@@ -99,6 +99,16 @@ jobs:
           SIZE=$(grep -oE 'package size:[[:space:]]*[0-9.]+[[:space:]]*[kMG]?B' pack-output.txt || echo "unknown")
           echo "Package size: $SIZE"
 
+      - name: Verify .aiwg/ excluded from package
+        run: |
+          if grep -q '\.aiwg/' pack-output.txt; then
+            echo "FATAL: .aiwg/ found in npm package contents!"
+            echo ".aiwg/ is project-local SDLC artifacts — must never be published."
+            grep '\.aiwg/' pack-output.txt
+            exit 1
+          fi
+          echo "✓ .aiwg/ correctly excluded from npm package"
+
       - name: Publish to Gitea npm registry
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |

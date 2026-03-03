@@ -73,6 +73,22 @@ jobs:
             exit 1
           fi
 
+      - name: Verify .aiwg/ excluded from plugins
+        run: |
+          FOUND=0
+          for plugin in plugins/*/; do
+            if find "$plugin" -path '*/.aiwg/*' 2>/dev/null | grep -q .; then
+              echo "FATAL: .aiwg/ content found in plugin $(basename $plugin)!"
+              find "$plugin" -path '*/.aiwg/*'
+              FOUND=1
+            fi
+          done
+          if [ "$FOUND" -eq 1 ]; then
+            echo ".aiwg/ is project-local SDLC artifacts — must never be in plugins."
+            exit 1
+          fi
+          echo "✓ .aiwg/ correctly excluded from all plugins"
+
       - name: Build summary
         run: |
           echo "## Plugin Build Complete"

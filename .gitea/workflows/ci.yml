@@ -94,3 +94,11 @@ jobs:
           echo "Checking build output..."
           ls -la dist/ || echo "dist/ directory not found"
           ls -la dist/src/ || echo "dist/src/ directory not found"
+
+      - name: Verify .aiwg/ excluded from build
+        run: |
+          if [ -d "dist/.aiwg" ] || find dist/ -path '*/.aiwg/*' 2>/dev/null | grep -q .; then
+            echo "FATAL: .aiwg/ content found in build output!"
+            exit 1
+          fi
+          echo "✓ .aiwg/ correctly excluded from build output"
