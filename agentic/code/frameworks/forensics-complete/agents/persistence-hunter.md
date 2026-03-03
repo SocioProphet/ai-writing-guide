@@ -227,6 +227,294 @@ find /etc/profile.d /home /root -name ".*rc" -o -name ".profile" -o \
 
 Flag any login script that contains: outbound network calls, base64 encoded commands, references to /tmp or /dev/shm, or additions made during the suspected intrusion window.
 
+### 8. SUID/SGID Binary Analysis (T1548.001)
+
+SUID and SGID binaries execute with elevated privileges regardless of the calling user. Attackers plant SUID copies of standard tools or modify existing SUID binaries to maintain escalated access.
+
+```bash
+# Find all SUID binaries
+find / -xdev -perm -4000 -type f 2>/dev/null
+
+# Find all SGID binaries
+find / -xdev -perm -2000 -type f 2>/dev/null
+
+# Cross-reference with package manager
+dpkg -S /path/to/binary 2>/dev/null || echo "NOT FROM PACKAGE"
+rpm -qf /path/to/binary 2>/dev/null || echo "NOT FROM PACKAGE"
+```
+
+Red flags: recently modified SUID binaries, SUID binaries not owned by any package, SUID shells (e.g., `/bin/bash` with SUID set), and SUID copies of standard tools in unexpected locations (e.g., `/tmp/nmap` with SUID). Any SUID binary in `/tmp`, `/dev/shm`, or `/var/tmp` is a critical finding.
+
+ATT&CK: T1548.001 (Setuid and Setgid)
+
+### 9. Windows Persistence
+
+Windows provides numerous persistence locations spanning the registry, task scheduler, WMI, and service control manager. Attackers commonly layer multiple mechanisms — check all of them regardless of which one you find first.
+
+#### Registry Run Keys (T1547.001)
+
+```powershell
+# HKLM Run keys (all users, requires admin)
+Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices" -ErrorAction SilentlyContinue
+Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
+
+# HKCU Run keys (current user context)
+Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+```
+
+Flag any entry pointing to `%TEMP%`, `%APPDATA%`, or `C:\Users\*\AppData\Local\Temp`. Flag encoded PowerShell invocations (`-enc`, `-EncodedCommand`).
+
+#### Scheduled Tasks (T1053.005)
+
+```powershell
+# List all scheduled tasks with details
+schtasks /query /fo LIST /v 2>$null
+
+# PowerShell — filter for non-Microsoft tasks
+Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\Microsoft\*" } |
+  Select-Object TaskName, TaskPath, State, @{n='Action';e={$_.Actions.Execute}}
+
+# Show task XML for full detail (substitute task name)
+Export-ScheduledTask -TaskName "<suspicious task>" | Out-String
+```
+
+Flag tasks with actions invoking `powershell.exe`, `cmd.exe`, `wscript.exe`, `cscript.exe`, or executables in user-writable paths. Flag tasks running as `SYSTEM` created by non-system accounts.
+
+#### WMI Event Subscriptions (T1546.003)
+
+```powershell
+# Event filters (the trigger condition)
+Get-WMIObject -Namespace root\subscription -Class __EventFilter |
+  Select-Object Name, Query, QueryLanguage
+
+# Event consumers (the action taken)
+Get-WMIObject -Namespace root\subscription -Class __EventConsumer
+
+# Bindings (links filters to consumers)
+Get-WMIObject -Namespace root\subscription -Class __FilterToConsumerBinding
+```
+
+Any event filter or consumer in `root\subscription` that is not from a known security or management product is a critical finding. WMI subscriptions survive reboots and are invisible to most AV tools.
+
+#### Non-Microsoft Services (T1543.003)
+
+```powershell
+# List all services with signature verification
+Get-Service | Where-Object { $_.Status -eq "Running" } | ForEach-Object {
+  $svc = $_
+  $path = (Get-WmiObject Win32_Service | Where-Object { $_.Name -eq $svc.Name }).PathName
+  $sig = Get-AuthenticodeSignature $path -ErrorAction SilentlyContinue
+  [PSCustomObject]@{
+    Name      = $svc.Name
+    Status    = $svc.Status
+    Path      = $path
+    Publisher = $sig.SignerCertificate.Subject
+    Valid     = $sig.Status
+  }
+} | Where-Object { $_.Publisher -notlike "*Microsoft*" -or $_.Valid -ne "Valid" }
+```
+
+Flag services with unsigned or invalidly signed binaries, services pointing to executables in user-writable directories, and services with generic or misspelled names mimicking legitimate services.
+
+#### Startup Folder (T1547.001)
+
+```powershell
+# Current user startup
+explorer shell:startup
+
+# All-users startup
+explorer "shell:common startup"
+
+# List contents programmatically
+Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+Get-ChildItem "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
+```
+
+Any `.lnk`, `.bat`, `.vbs`, `.js`, or `.exe` in startup folders that is not part of a known installed application warrants investigation.
+
+#### DLL Hijacking (T1574.001)
+
+DLL hijacking exploits Windows DLL search order — the attacker places a malicious DLL earlier in the search path than the legitimate one.
+
+```powershell
+# Use Process Monitor (Sysinternals) with these filters:
+# Operation: Load Image
+# Result: NAME NOT FOUND (DLL not found in earlier path locations)
+# Path: ends with .dll
+
+# Known-DLLs are immune — check which are registered
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\KnownDLLs"
+
+# Identify writable directories in system PATH
+$env:PATH -split ";" | ForEach-Object {
+  $acl = Get-Acl $_ -ErrorAction SilentlyContinue
+  if ($acl) { [PSCustomObject]@{ Path=$_; ACL=$acl.AccessToString } }
+}
+```
+
+Flag DLLs in user-writable directories that share names with system DLLs. Flag applications loading DLLs from `%TEMP%` or `%APPDATA%`.
+
+#### COM Hijacking (T1546.015)
+
+```powershell
+# HKCU COM registrations override HKLM — attackers register here without admin rights
+Get-ChildItem "HKCU:\SOFTWARE\Classes\CLSID" |
+  ForEach-Object {
+    $clsid = $_.PSChildName
+    $server = Get-ItemProperty "$($_.PSPath)\InprocServer32" -ErrorAction SilentlyContinue
+    if ($server) {
+      [PSCustomObject]@{ CLSID=$clsid; Server=$server."(default)" }
+    }
+  }
+
+# Cross-reference against HKLM entries (HKCU overrides take precedence)
+# Any CLSID in HKCU that also exists in HKLM is a hijack candidate
+```
+
+Flag HKCU `InprocServer32` entries pointing to non-system paths. Flag CLSIDs registered in HKCU that correspond to frequently loaded system COM objects.
+
+### 10. macOS Persistence
+
+macOS uses a layered launch system. LaunchAgents run as the user; LaunchDaemons run as root. Both survive reboots and are the primary persistence mechanism for macOS malware.
+
+#### LaunchAgents (T1543.001)
+
+```bash
+# Per-user LaunchAgents (run as logged-in user)
+ls -la ~/Library/LaunchAgents/
+cat ~/Library/LaunchAgents/*.plist 2>/dev/null
+
+# System-wide LaunchAgents (run for every user login)
+ls -la /Library/LaunchAgents/
+cat /Library/LaunchAgents/*.plist 2>/dev/null
+
+# Recently modified agents
+find ~/Library/LaunchAgents /Library/LaunchAgents -newer /etc/hosts -ls 2>/dev/null
+```
+
+Compare every `.plist` program path against known installed applications. Flag agents with `RunAtLoad` set to true and program arguments invoking shells, curl, or python. Flag plists with obfuscated or encoded command strings.
+
+#### LaunchDaemons (T1543.004)
+
+```bash
+# System LaunchDaemons (run as root, no user session required)
+ls -la /Library/LaunchDaemons/
+cat /Library/LaunchDaemons/*.plist 2>/dev/null
+
+# Compare against known Apple daemons (these are in /System/Library/LaunchDaemons/)
+ls /System/Library/LaunchDaemons/ > /tmp/apple-daemons.txt
+ls /Library/LaunchDaemons/ > /tmp/third-party-daemons.txt
+diff /tmp/apple-daemons.txt /tmp/third-party-daemons.txt
+
+# Recently modified daemons
+find /Library/LaunchDaemons -newer /etc/hosts -ls 2>/dev/null
+```
+
+Daemons in `/System/Library/LaunchDaemons/` are Apple-owned (protected by SIP). Daemons in `/Library/LaunchDaemons/` are third-party. Any daemon in `/Library/LaunchDaemons/` with a non-vendor origin warrants investigation.
+
+#### Login Items (T1547.015)
+
+```bash
+# Query login items via osascript
+osascript -e 'tell application "System Events" to get the name of every login item'
+osascript -e 'tell application "System Events" to get the path of every login item'
+
+# Login items plist (pre-macOS 13)
+cat ~/Library/Preferences/com.apple.loginitems.plist 2>/dev/null
+
+# macOS 13+ Background Task Management
+# Check System Settings > General > Login Items for GUI review
+```
+
+Any login item pointing to a path in `/tmp`, `~/Downloads`, or other user-writable locations outside of `/Applications` is suspicious. Cross-reference item paths against known installed software.
+
+#### Authorization Plugins (T1547.002)
+
+```bash
+# Authorization plugins execute during authentication events — high-value target
+ls -la /Library/Security/SecurityAgentPlugins/
+
+# Review plugin bundles
+find /Library/Security/SecurityAgentPlugins -name "*.bundle" -ls 2>/dev/null
+
+# Verify against known Apple plugins (shipped in /System/Library/Security/SecurityAgentPlugins/)
+ls /System/Library/Security/SecurityAgentPlugins/
+```
+
+Any plugin in `/Library/Security/SecurityAgentPlugins/` that is not from Apple or a known security vendor (e.g., endpoint agent) is a critical finding. These plugins have access to authentication credentials in cleartext.
+
+### 11. Container Persistence
+
+Container environments introduce unique persistence surfaces. Attackers target image layers, orchestrator configurations, and cluster-wide controllers that survive pod restarts and node replacements.
+
+#### ENTRYPOINT Modification (T1525)
+
+```bash
+# Compare running container's ENTRYPOINT against the image manifest
+docker inspect <container_id> --format '{{.Config.Entrypoint}}'
+docker image inspect <image_name> --format '{{.Config.Entrypoint}}'
+
+# Check for CMD overrides in running containers
+docker inspect <container_id> --format '{{.Config.Cmd}}'
+
+# Identify containers running unexpected commands
+docker ps --no-trunc --format "table {{.Image}}\t{{.Command}}\t{{.Names}}"
+```
+
+Any discrepancy between a running container's command and its image definition indicates runtime injection or a modified image. Flag containers whose `CMD` or `ENTRYPOINT` includes curl, bash -c with encoded content, or references to external IPs.
+
+#### Kubernetes DaemonSets
+
+DaemonSets run a pod on every node — attackers use them to ensure persistence across all cluster nodes simultaneously.
+
+```bash
+# List all DaemonSets across all namespaces
+kubectl get daemonsets --all-namespaces -o wide
+
+# Inspect DaemonSet spec for unexpected images or commands
+kubectl get daemonset <name> -n <namespace> -o yaml
+
+# Compare against expected baseline (version control or CMDB)
+kubectl get daemonsets --all-namespaces -o json | \
+  jq '.items[] | {name: .metadata.name, namespace: .metadata.namespace, image: .spec.template.spec.containers[].image}'
+```
+
+Flag any DaemonSet in non-system namespaces (i.e., not `kube-system`) that was not deployed via your standard CI/CD pipeline. Flag DaemonSets using `hostPID: true`, `hostNetwork: true`, or privileged containers.
+
+#### Kubernetes CronJobs (T1053.007)
+
+```bash
+# List all CronJobs across all namespaces
+kubectl get cronjobs --all-namespaces -o wide
+
+# Inspect schedule and command for each CronJob
+kubectl get cronjob <name> -n <namespace> -o yaml
+
+# Extract all schedules and images for review
+kubectl get cronjobs --all-namespaces -o json | \
+  jq '.items[] | {name: .metadata.name, namespace: .metadata.namespace, schedule: .spec.schedule, image: .spec.jobTemplate.spec.template.spec.containers[].image, command: .spec.jobTemplate.spec.template.spec.containers[].command}'
+```
+
+Flag CronJobs with frequent schedules (e.g., `* * * * *`) that are not part of expected workloads. Flag jobs invoking shells with network callbacks or running privileged containers.
+
+#### Init Containers
+
+Init containers run before application containers start — attackers use them to stage payloads, modify the filesystem, or establish backdoors before the main container is monitored.
+
+```bash
+# List all pods with init containers across all namespaces
+kubectl get pods --all-namespaces -o json | \
+  jq '.items[] | select(.spec.initContainers != null) | {name: .metadata.name, namespace: .metadata.namespace, initContainers: [.spec.initContainers[] | {name: .name, image: .image, command: .command}]}'
+
+# Inspect a specific pod's init containers
+kubectl get pod <pod_name> -n <namespace> -o jsonpath='{.spec.initContainers}'
+```
+
+Flag init containers using images not from your organization's approved registry. Flag init containers that mount host paths (`hostPath` volumes) or modify files in shared volumes before the main container starts.
+
 ## MITRE ATT&CK Mapping
 
 | Technique ID | Name | Detection Method |
@@ -241,6 +529,19 @@ Flag any login script that contains: outbound network calls, base64 encoded comm
 | T1037.004 | Boot or Logon Initialization Scripts: RC Scripts | /etc/rc.local, /etc/init.d |
 | T1136.001 | Create Account: Local Account | /etc/passwd new accounts |
 | T1078.003 | Valid Accounts: Local Accounts | sudo group membership changes |
+| T1548.001 | Abuse Elevation Control Mechanism: Setuid and Setgid | find -perm -4000/-2000, package cross-reference |
+| T1547.001 | Boot or Logon Autostart: Registry Run Keys / Startup Folder | HKLM/HKCU Run keys, shell:startup contents |
+| T1053.005 | Scheduled Task/Job: Scheduled Task | schtasks /query, Get-ScheduledTask |
+| T1546.003 | Event Triggered Execution: Windows Management Instrumentation | root\subscription __EventFilter/__EventConsumer |
+| T1543.003 | Create or Modify System Process: Windows Service | Get-Service with signature verification |
+| T1574.001 | Hijack Execution Flow: DLL Search Order Hijacking | Process Monitor NAME NOT FOUND, writable PATH dirs |
+| T1546.015 | Event Triggered Execution: Component Object Model Hijacking | HKCU\SOFTWARE\Classes\CLSID InprocServer32 |
+| T1543.001 | Create or Modify System Process: Launch Agent | ~/Library/LaunchAgents, /Library/LaunchAgents |
+| T1543.004 | Create or Modify System Process: Launch Daemon | /Library/LaunchDaemons, comparison to Apple baseline |
+| T1547.015 | Boot or Logon Autostart: Login Items | osascript login item query, loginitems.plist |
+| T1547.002 | Boot or Logon Autostart: Authentication Package | /Library/Security/SecurityAgentPlugins |
+| T1525 | Implant Internal Image | docker inspect ENTRYPOINT vs image manifest |
+| T1053.007 | Scheduled Task/Job: Container Orchestration Job | kubectl get cronjobs --all-namespaces |
 
 ## Deliverables
 

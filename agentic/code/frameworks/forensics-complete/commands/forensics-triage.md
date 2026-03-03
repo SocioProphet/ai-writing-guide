@@ -162,6 +162,93 @@ Next Steps:
   /forensics-investigate ssh://admin@192.168.1.50 --scope full
 ```
 
+## Investigation Profiles
+
+Profiles select a pre-configured subset of checks tuned for a specific investigation scenario. Pass a profile name via `--profile <name>`. Profiles can be combined with `--scope` for further narrowing.
+
+```bash
+/forensics-triage ssh://admin@host --profile quick-triage
+/forensics-triage ssh://admin@host --profile targeted-ssh
+/forensics-triage ssh://admin@host --profile targeted-container
+```
+
+### quick-triage
+
+**Time budget**: ~5 minutes. Use when you need immediate situational awareness before a fuller investigation, or when the triage window is constrained (active incident, system may be shut down soon).
+
+**Captures**:
+- Network connections only: `ss -tunap`, ARP cache, routing table
+- Process list only: `ps auxwwef`, processes from `/tmp`/`/dev/shm`/`/var/tmp`
+- Skips: disk checks, kernel modules, open file handles, auth logs
+
+**Red flag checks included**:
+- Processes with deleted executables
+- Active outbound connections on unexpected ports
+- Processes running from temporary directories
+- Interfaces in promiscuous mode
+
+**Skipped checks**: SUID binary inventory, LD_PRELOAD scan, cron modifications, failed login history
+
+**Output**: Condensed `triage-summary.md` with threat score and top-priority findings. No `volatile/` subdirectory — all data written to a single capture file.
+
+**When to use**: First 5 minutes of an active incident; pre-escalation snapshot before calling the incident commander; when `--fast` alone is insufficient but a full triage is not yet authorized.
+
+---
+
+### targeted-ssh
+
+**Time budget**: ~15 minutes. Use when the suspected intrusion vector is SSH — brute force, credential stuffing, stolen key, or unauthorized key addition.
+
+**Captures** (in addition to standard volatile capture):
+- Full authentication log correlation: `auth.log`, `secure`, `journalctl -u sshd`
+- Last 7 days of SSH authentication events, not just last 100 lines
+- Active SSH sessions: `who`, `w`, `last`, `lastb`
+- Authorized keys across all user accounts (`~/.ssh/authorized_keys`)
+- SSHD configuration snapshot (`/etc/ssh/sshd_config`) for unauthorized changes
+- Failed login pattern analysis: count by source IP, frequency, username targeting
+- Successful logins cross-referenced against failed attempts (brute-force success detection)
+- Login timing anomalies: logins outside business hours, geographically inconsistent IPs
+- SSH agent forwarding indicators in active sessions
+
+**Red flag checks included**: All standard red flags plus:
+- New authorized keys added within the investigation window
+- SSHD configuration changes (PermitRootLogin, PasswordAuthentication changes)
+- Successful root login preceded by failed attempts (Red Flag 6 with full context)
+- SSH sessions with unusually long durations or high data transfer
+
+**Output**: Standard artifact structure plus `ssh-analysis.md` containing the full auth correlation report and a timeline of SSH activity sorted by timestamp.
+
+**When to use**: Alert triggered by SSH brute-force detection; user reports unauthorized access; unusual login from unexpected geography or time; post-incident review of a suspected credential compromise.
+
+---
+
+### targeted-container
+
+**Time budget**: ~10 minutes. Use when the target is a Docker host, Kubernetes node, or containerized workload.
+
+**Captures** (in addition to standard volatile capture):
+- Docker daemon state: `docker ps -a`, `docker stats`, `docker inspect` for running containers
+- Container network namespaces: connections from within each running container
+- Kubernetes pod state (if node is part of a cluster): `kubectl get pods --all-namespaces`, `kubectl describe pod`
+- Privileged containers: `docker inspect` output filtered for `Privileged: true` or host namespace mounts
+- Volume mounts: host path mounts that could allow container escape (`/`, `/etc`, `/var/run/docker.sock`)
+- Image provenance: image IDs vs. expected registry tags (`docker images --digests`)
+- Container escape indicators: unexpected processes outside container namespaces, host filesystem access from within containers
+- K8s: recent pod creation/deletion events, service account token usage, admission controller logs
+
+**Red flag checks included**: All standard red flags plus:
+- Containers running as root with host PID or network namespace (`--pid=host`, `--network=host`)
+- Docker socket mounted inside a container (`/var/run/docker.sock` in container mounts) — allows full host escape
+- Images pulled from unexpected registries or untagged images
+- Pods with `hostPath` volumes pointing to sensitive host directories
+- Containers with recent image pulls not matching deployment manifests
+
+**Output**: Standard artifact structure plus `container-analysis.md` with container inventory, privilege audit, and escape-path assessment.
+
+**When to use**: Alert from container runtime security tooling (Falco, Sysdig); unexpected privileged container detected; pod behavior anomaly in K8s cluster; post-incident review of a containerized workload compromise.
+
+---
+
 ## References
 
 - @agentic/code/frameworks/forensics-complete/agents/triage-agent.md - Triage Agent

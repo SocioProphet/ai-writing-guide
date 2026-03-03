@@ -1,6 +1,6 @@
 ---
 name: container-forensics
-description: "Docker and Kubernetes forensic investigation covering container inventory, privilege checks, image verification, escape detection, and K8s RBAC audit"
+description: "Docker, containerd/CRI-O, and Kubernetes forensic investigation covering container inventory (docker and crictl), privilege checks, image verification, layer analysis (dive), escape detection, eBPF runtime monitoring (Falco, Tetragon, Tracee), K8s RBAC audit, etcd security audit, and API server audit log analysis"
 tools: Bash, Read, Write, Glob, Grep
 ---
 
@@ -15,6 +15,11 @@ Investigates containerized environments for signs of compromise, misconfiguratio
 - "kubernetes forensics"
 - "investigate containers"
 - "k8s forensics"
+- "ebpf forensics"
+- "falco alerts"
+- "crictl investigation"
+- "etcd audit"
+- "api server audit"
 
 ## Purpose
 
@@ -28,10 +33,15 @@ When triggered, this skill:
    - Check for Docker: `docker info 2>/dev/null`
    - Check for Kubernetes: `kubectl cluster-info 2>/dev/null` or presence of `/var/run/secrets/kubernetes.io/`
    - Check for containerd-only (no Docker): `ctr version 2>/dev/null`
+   - Check for CRI-O or containerd via CRI: `crictl version 2>/dev/null`
    - Determine if running inside a container: check for `/.dockerenv`, inspect cgroup paths
 
-2. **Docker — container inventory and privilege audit**:
+2. **Container inventory and privilege audit**:
    - List all containers (running and stopped): `docker ps -a --format '{{json .}}'`
+   - For containerd/CRI-O environments: `crictl pods` and `crictl ps -a`
+   - Inspect individual containers: `crictl inspect <id>` (equivalent of `docker inspect`)
+   - List images on CRI nodes: `crictl images` and `crictl inspecti <image-id>`
+   - Pull container logs via CRI: `crictl logs <container-id>`
    - Flag containers with dangerous flags:
      - `--privileged`: `docker inspect <id> | jq '.[].HostConfig.Privileged'`
      - Host network mode: `NetworkMode == "host"`
@@ -46,44 +56,76 @@ When triggered, this skill:
    - Inspect image build history for suspicious `RUN` layers: `docker history --no-trunc <image>`
    - Check for images not associated with any running or stopped container (orphaned images)
 
-4. **Docker — volume and filesystem inspection**:
+4. **Image layer analysis with dive**:
+   - Run `dive <image> --ci` for non-interactive efficiency and layer summary
+   - Identify layers that delete files immediately after downloading them (evidence wiping pattern)
+   - Flag layers installing unexpected tooling (`curl`, `nc`, `nmap`, `socat`, `python`)
+   - Identify unusually large layers inconsistent with the image's declared purpose
+   - Check for world-writable permissions set in later layers after a trusted base image
+
+5. **Docker — volume and filesystem inspection**:
    - List named volumes: `docker volume ls`
    - Inspect volumes mounted into containers for sensitive data paths
    - Examine container overlay filesystem changes: `docker diff <container_id>`
    - Flag containers with writable root filesystems where `ReadonlyRootfs` is false
 
-5. **Docker — socket and API exposure**:
+6. **Docker — socket and API exposure**:
    - Check if Docker socket is bind-mounted into any container — this grants effective root on the host
    - Check for TCP Docker API exposure: `ss -tlnp | grep ':2375\|:2376'`
    - Review Docker daemon configuration: `/etc/docker/daemon.json`
 
-6. **Container escape indicators**:
+7. **Container escape indicators**:
    - Processes running in container namespaces that share host PID/network: compare namespace inodes in `/proc/1/ns/` vs `/proc/<container-pid>/ns/`
    - Unexpected cgroup escape patterns in `/proc/<pid>/cgroup`
    - Files written to host paths from within container overlay mounts
    - `runc` or `containerd-shim` process anomalies in host process tree
 
-7. **Kubernetes — cluster-level audit**:
+8. **eBPF runtime monitoring**:
+   - Check for Falco service and alert logs: `journalctl -u falco` and `/var/log/falco.log`
+   - Review active Falco rules for coverage gaps (shell-in-container, outbound connections, writes below root)
+   - Collect Tetragon execution traces via `kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon` or `tetra getevents`
+   - Review active Tetragon `TracingPolicy` resources: `kubectl get tracingpolicies -A`
+   - Collect Tracee event logs from container or systemd deployment
+   - If no eBPF tooling was active during the incident, document this gap in the findings
+
+9. **Kubernetes — cluster-level audit**:
    - List all pods across all namespaces: `kubectl get pods -A -o json`
    - Flag pods running as root: `.spec.containers[].securityContext.runAsUser == 0` or unset
    - Flag pods with `hostPID`, `hostNetwork`, or `hostIPC` set to true
    - Flag pods mounting the Docker socket or host paths
    - List privileged containers across the cluster
 
-8. **Kubernetes — RBAC audit**:
-   - List ClusterRoleBindings granting `cluster-admin`: `kubectl get clusterrolebindings -o json | jq '...'`
-   - Identify service accounts with wildcard permissions or `*` verbs on sensitive resources
-   - Check for default service account token automounting: `automountServiceAccountToken: true`
-   - List RoleBindings in high-value namespaces (kube-system, kube-public)
+10. **Kubernetes — RBAC audit**:
+    - List ClusterRoleBindings granting `cluster-admin`: `kubectl get clusterrolebindings -o json | jq '...'`
+    - Identify service accounts with wildcard permissions or `*` verbs on sensitive resources
+    - Check for default service account token automounting: `automountServiceAccountToken: true`
+    - List RoleBindings in high-value namespaces (kube-system, kube-public)
 
-9. **Kubernetes — pod security and network policy**:
-   - Check for absent NetworkPolicies (pods with unrestricted egress/ingress)
-   - Review PodSecurityAdmission or OPA/Gatekeeper policy coverage
-   - List nodes and check for unauthorized node additions: `kubectl get nodes -o wide`
+11. **Kubernetes — pod security and network policy**:
+    - Check for absent NetworkPolicies (pods with unrestricted egress/ingress)
+    - Review PodSecurityAdmission or OPA/Gatekeeper policy coverage
+    - List nodes and check for unauthorized node additions: `kubectl get nodes -o wide`
 
-10. **Write findings document**:
+12. **etcd security audit** (Kubernetes control-plane only):
+    - Verify etcd is not listening on a non-loopback address: `ps aux | grep etcd | grep listen-client-urls`
+    - Confirm `--client-cert-auth=true` is set in the etcd process flags
+    - Check for encryption-at-rest configuration in the API server manifest (`--encryption-provider-config`)
+    - List etcd client certificates in `/etc/kubernetes/pki/etcd/` and flag any unexpected certs
+    - Take a read-only snapshot with `etcdctl snapshot save` for offline analysis
+    - Enumerate etcd key paths for secrets and serviceaccount tokens using `etcdctl get / --prefix --keys-only`
+
+13. **K8s API server audit log analysis** (if audit logging is enabled):
+    - Locate audit log path from `kube-apiserver.yaml` (`--audit-log-path`)
+    - Summarize request activity by user and verb to identify outliers
+    - Detect anonymous (`system:anonymous`) API calls to non-public endpoints
+    - Flag ServiceAccount tokens used outside their home namespace
+    - Identify bulk `list`/`get` on `secrets` resources (credential harvesting pattern)
+    - Flag `exec` subresource calls from non-operator users during the incident window
+    - Detect rapid `create`/`delete` sequences on the same resource (attacker covering tracks)
+
+14. **Write findings document**:
     - Save to `.aiwg/forensics/findings/container-forensics.md`
-    - Group by: Docker findings, Kubernetes findings, escape indicators
+    - Group by: Docker/containerd findings, eBPF runtime events, Kubernetes findings, etcd/API server findings, escape indicators
     - Tag each finding: INFO, SUSPICIOUS, MALICIOUS
 
 ## Usage Examples
@@ -110,7 +152,13 @@ Detects the container context and adjusts collection accordingly.
 
 - Findings: `.aiwg/forensics/findings/container-forensics.md`
 - Raw Docker inspection: `.aiwg/forensics/evidence/docker-inspect.json`
+- crictl inspection output: `.aiwg/forensics/evidence/crictl-inspect.json`
 - K8s pod manifest dump: `.aiwg/forensics/evidence/k8s-pods.json`
+- Falco alert log: `.aiwg/forensics/evidence/falco-alerts.log`
+- Tetragon events: `.aiwg/forensics/evidence/tetragon-events.json`
+- Tracee events: `.aiwg/forensics/evidence/tracee-events.json`
+- etcd snapshot: `.aiwg/forensics/evidence/etcd-snapshot-<timestamp>.db`
+- K8s API server audit log (copy): `.aiwg/forensics/evidence/k8s-audit.log`
 
 ## Configuration
 

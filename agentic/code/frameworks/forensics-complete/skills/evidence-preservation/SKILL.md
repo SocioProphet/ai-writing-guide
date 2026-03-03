@@ -69,7 +69,25 @@ When triggered, this skill:
      ```
    - Record: original path, copy path, file size, SHA-256 hash, last modification time
 
-6. **Hash verification procedure**:
+6. **Cloud evidence collection** (when cloud resources are in scope):
+   - AWS: Create EBS snapshot of instance volume; export CloudTrail events; generate IAM credential report. Hash each downloaded artifact. Record snapshot IDs in custody log — snapshot integrity is attested by the provider.
+   - Azure: Create VM disk snapshot; export Activity Log to JSON. Hash each artifact.
+   - GCP: Create disk snapshot; export Audit Logs to JSON. Hash each artifact.
+   - Store all cloud artifacts in `cloud/` subdirectory. Custody-log each item.
+
+7. **Container evidence collection** (when containers are in scope):
+   - Enumerate running and stopped containers before touching anything
+   - For each relevant container, collect in this order:
+     ```bash
+     docker logs <container_id> > /evidence/containers/<container_id>-logs.txt
+     docker export <container_id> > /evidence/containers/<container_id>-filesystem.tar
+     docker inspect <container_id> > /evidence/containers/<container_id>-inspect.json
+     ```
+   - Hash each artifact immediately after collection
+   - Do not stop or remove containers until all three artifacts are collected and hashed
+   - Store all container artifacts in `containers/` subdirectory. Custody-log each item.
+
+8. **Hash verification procedure**:
    - After all items are collected, re-hash each item and compare against initial hashes
    - Any mismatch is a custody integrity failure — document immediately
    - Generate a master hash manifest:
@@ -78,7 +96,7 @@ When triggered, this skill:
        xargs sha256sum > .aiwg/forensics/evidence/<package-id>/manifest.sha256
      ```
 
-7. **Chain of custody documentation**:
+9. **Chain of custody documentation**:
    - Record each transfer of custody:
      - Date and time of transfer (UTC)
      - Transferring party (name, role, organization)
@@ -88,7 +106,7 @@ When triggered, this skill:
    - Document evidence storage location between transfers (locked cabinet, encrypted volume, etc.)
    - Record any access to evidence items after collection (date, accessor, purpose)
 
-8. **Evidence packaging**:
+10. **Evidence packaging**:
    - Create a compressed, encrypted archive of the evidence directory:
      ```bash
      tar czf - .aiwg/forensics/evidence/<package-id>/ | \
@@ -97,7 +115,7 @@ When triggered, this skill:
    - Hash the final package file
    - Record passphrase storage location (separate from package, in a sealed physical envelope or secrets manager)
 
-9. **Write custody documentation**:
+11. **Write custody documentation**:
    - Custody log: `.aiwg/forensics/evidence/<package-id>/custody.log`
    - Hash manifest: `.aiwg/forensics/evidence/<package-id>/manifest.sha256`
    - Collection notes: `.aiwg/forensics/evidence/<package-id>/collection-notes.md`

@@ -98,6 +98,15 @@ sha256sum /var/log/syslog | tee "$EVIDENCE_DIR/syslog.sha256"
 journalctl --no-pager -o export > "$EVIDENCE_DIR/journal.export"
 sha256sum "$EVIDENCE_DIR/journal.export" | tee "$EVIDENCE_DIR/journal.export.sha256"
 
+# Binary login failure log
+cp /var/log/btmp "$EVIDENCE_DIR/btmp" && sha256sum "$EVIDENCE_DIR/btmp" | tee "$EVIDENCE_DIR/btmp.sha256"
+
+# Package installation history
+cp /var/log/dpkg.log "$EVIDENCE_DIR/dpkg.log" && sha256sum "$EVIDENCE_DIR/dpkg.log" | tee "$EVIDENCE_DIR/dpkg.log.sha256"
+
+# Systemd journal (binary format, full export)
+journalctl --output=export > "$EVIDENCE_DIR/journal-export.bin" && sha256sum "$EVIDENCE_DIR/journal-export.bin" | tee "$EVIDENCE_DIR/journal-export.bin.sha256"
+
 # Rotated logs
 for f in /var/log/auth.log.* /var/log/syslog.*; do
   [ -f "$f" ] || continue
@@ -120,6 +129,14 @@ sha256sum "$EVIDENCE_DIR/network-state-at-acquisition.txt" | tee "$EVIDENCE_DIR/
 # Loaded modules at acquisition time
 lsmod > "$EVIDENCE_DIR/lsmod-at-acquisition.txt"
 sha256sum "$EVIDENCE_DIR/lsmod-at-acquisition.txt" | tee "$EVIDENCE_DIR/lsmod-at-acquisition.txt.sha256"
+
+# Login history
+last -F > /evidence/snapshots/login-history.txt
+lastb -F > /evidence/snapshots/failed-logins.txt
+
+# Recently modified files (create reference timestamp first if not already present)
+touch /evidence/reference-timestamp 2>/dev/null
+find / -xdev -newer /evidence/reference-timestamp -type f > /evidence/snapshots/recently-modified.txt
 ```
 
 #### Disk Image Acquisition (if authorized)
@@ -145,6 +162,84 @@ dcfldd if=/dev/sda of="$EVIDENCE_DIR/disk.img" \
 dd if=/dev/sda of="$EVIDENCE_DIR/disk.img" bs=4M conv=noerror,sync status=progress
 sha256sum "$EVIDENCE_DIR/disk.img" | tee "$EVIDENCE_DIR/disk.img.sha256"
 ```
+
+#### Memory Acquisition — Windows (if authorized)
+
+Use WinPmem for Windows memory acquisition alongside LiME on Linux systems.
+
+```powershell
+# Windows memory acquisition
+winpmem_mini_x64.exe output.raw
+# Verify
+Get-FileHash -Algorithm SHA256 output.raw
+```
+
+Record the hash output in the custody log under the memory image item. Transfer `output.raw` and its hash to the evidence repository over an encrypted channel.
+
+#### Cloud Evidence Acquisition (if authorized)
+
+Collect cloud-native evidence when the incident scope includes AWS, Azure, or GCP resources.
+
+**AWS**:
+```bash
+# EBS snapshot of compromised instance volume
+aws ec2 create-snapshot --volume-id <vol-id> --description "forensic-INC-$(date +%Y%m%d)"
+
+# Export CloudTrail logs to S3
+aws cloudtrail lookup-events --start-time <iso-timestamp> --output json > /evidence/cloud/cloudtrail-events.json
+sha256sum /evidence/cloud/cloudtrail-events.json | tee /evidence/cloud/cloudtrail-events.json.sha256
+
+# IAM credential report (identify all keys and last use)
+aws iam generate-credential-report
+aws iam get-credential-report --output text --query Content | base64 -d > /evidence/cloud/iam-credential-report.csv
+sha256sum /evidence/cloud/iam-credential-report.csv | tee /evidence/cloud/iam-credential-report.csv.sha256
+```
+
+**Azure**:
+```bash
+# Snapshot VM disk
+az snapshot create --name forensic-snap-$(date +%Y%m%d) \
+  --resource-group <rg> --source <disk-id>
+
+# Export Activity Log
+az monitor activity-log list --start-time <iso-timestamp> --output json \
+  > /evidence/cloud/azure-activity-log.json
+sha256sum /evidence/cloud/azure-activity-log.json | tee /evidence/cloud/azure-activity-log.json.sha256
+```
+
+**GCP**:
+```bash
+# Disk snapshot
+gcloud compute disks snapshot <disk-name> --snapshot-names forensic-snap-$(date +%Y%m%d)
+
+# Export Audit Logs
+gcloud logging read 'timestamp>="<iso-timestamp>"' --format=json \
+  > /evidence/cloud/gcp-audit-log.json
+sha256sum /evidence/cloud/gcp-audit-log.json | tee /evidence/cloud/gcp-audit-log.json.sha256
+```
+
+Hash and custody-log each cloud artifact. Note the snapshot IDs in the evidence manifest — snapshots are cloud-side copies, not local files, and their integrity is attested by the cloud provider.
+
+#### Container Evidence Acquisition (if authorized)
+
+Collect container evidence before stopping or removing any containers.
+
+```bash
+CONTAINER_EVIDENCE_DIR="/evidence/containers"
+mkdir -p "$CONTAINER_EVIDENCE_DIR"
+
+# Collect logs, filesystem export, and inspect data for each relevant container
+docker logs <container_id> > "$CONTAINER_EVIDENCE_DIR/<container_id>-logs.txt"
+sha256sum "$CONTAINER_EVIDENCE_DIR/<container_id>-logs.txt" | tee "$CONTAINER_EVIDENCE_DIR/<container_id>-logs.txt.sha256"
+
+docker export <container_id> > "$CONTAINER_EVIDENCE_DIR/<container_id>-filesystem.tar"
+sha256sum "$CONTAINER_EVIDENCE_DIR/<container_id>-filesystem.tar" | tee "$CONTAINER_EVIDENCE_DIR/<container_id>-filesystem.tar.sha256"
+
+docker inspect <container_id> > "$CONTAINER_EVIDENCE_DIR/<container_id>-inspect.json"
+sha256sum "$CONTAINER_EVIDENCE_DIR/<container_id>-inspect.json" | tee "$CONTAINER_EVIDENCE_DIR/<container_id>-inspect.json.sha256"
+```
+
+Collect for every container identified during triage. Do not stop or remove containers until all evidence is secured — `docker export` requires the container to exist.
 
 ### 4. Chain of Custody Documentation
 
@@ -221,6 +316,18 @@ evidence_items:
     custody_log: "custody-log-EVD-001.yaml"
   - item_id: "EVD-002"
     ...
+```
+
+**Evidence directory structure** — Organize all artifacts under a consistent hierarchy:
+
+```
+~/forensics/{target}/{date}/
+├── logs/           # auth.log, syslog, btmp, dpkg.log, journal
+├── snapshots/      # ps, ss, last, lastb, find outputs
+├── images/         # Disk and memory images
+├── cloud/          # EBS snapshots, CloudTrail, IAM reports
+├── containers/     # Docker logs, exports, inspects
+└── evidence_hashes.txt  # SHA-256 manifest
 ```
 
 **Per-item custody logs** — One `custody-log-EVD-NNN.yaml` for every evidence item.

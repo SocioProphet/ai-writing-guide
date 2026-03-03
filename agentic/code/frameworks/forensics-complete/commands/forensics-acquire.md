@@ -26,6 +26,8 @@ Collect and preserve forensic evidence from the target system with complete chai
 | --all | No | Acquire all evidence types |
 | --since | No | Acquire logs since timestamp (e.g., `2026-02-27T00:00:00Z`) |
 | --output | No | Output directory (default: `.aiwg/forensics/acquisition/`) |
+| --cloud | No | Acquire cloud evidence (EBS snapshots, CloudTrail, Activity Logs, Audit Logs) |
+| --container | No | Acquire container evidence (logs, filesystem exports, inspect data) |
 | --compress | No | Compress evidence archives with gzip |
 | --no-verify | No | Skip post-acquisition hash verification (not recommended) |
 
@@ -69,12 +71,24 @@ When invoked, this command:
    - Preserve deleted file metadata via `debugfs` or `extundelete`
    - Capture partition layout and mount state
 
-6. **Integrity Verification**
+6. **Cloud Evidence Acquisition** (when `--cloud` specified)
+   - AWS: Create EBS snapshot of instance volume, export CloudTrail events to JSON, generate and download IAM credential report
+   - Azure: Create VM disk snapshot, export Activity Log to JSON
+   - GCP: Create disk snapshot, export Audit Logs to JSON
+   - Compute SHA-256 for each downloaded artifact; record cloud snapshot IDs in evidence manifest (integrity attested by provider)
+
+7. **Container Evidence Acquisition** (when `--container` specified)
+   - Enumerate running and stopped containers on target
+   - For each relevant container: collect logs (`docker logs`), export filesystem (`docker export`), capture inspect metadata (`docker inspect`)
+   - Compute SHA-256 for each artifact
+   - Containers are not stopped or removed until all evidence is secured
+
+8. **Integrity Verification**
    - Verify SHA-256 of each acquired artifact against original
    - Record match/mismatch status in evidence manifest
    - Flag any verification failures for investigator review
 
-7. **Evidence Manifest**
+9. **Evidence Manifest**
    - Generate `evidence-manifest.yaml` with all artifact metadata
    - Include: filename, original path, collected timestamp, hash, size
    - Update chain-of-custody log with completion entry
@@ -107,6 +121,21 @@ When invoked, this command:
 /forensics-acquire ssh://admin@host --logs --config --compress
 ```
 
+### Example 6: Cloud evidence acquisition
+```bash
+/forensics-acquire aws://account-id --cloud
+```
+
+### Example 7: Container evidence acquisition
+```bash
+/forensics-acquire ssh://admin@host --container
+```
+
+### Example 8: Full acquisition including cloud and container evidence
+```bash
+/forensics-acquire ssh://root@10.0.0.5 --all --cloud --container
+```
+
 ## Output
 
 Artifacts are saved to `.aiwg/forensics/acquisition/`:
@@ -118,13 +147,31 @@ Artifacts are saved to `.aiwg/forensics/acquisition/`:
 ├── logs/
 │   ├── auth.log.gz
 │   ├── syslog.gz
-│   ├── journal-export.txt.gz
+│   ├── btmp.gz
+│   ├── dpkg.log.gz
+│   ├── journal-export.bin.gz
 │   └── audit.log.gz
+├── snapshots/
+│   ├── login-history.txt
+│   ├── failed-logins.txt
+│   └── recently-modified.txt
 ├── config/
 │   ├── sshd_config
 │   ├── authorized_keys-<user>.txt
 │   ├── crontabs/
 │   └── sudoers/
+├── images/
+│   ├── disk.img
+│   └── memory.raw
+├── cloud/
+│   ├── cloudtrail-events.json
+│   ├── iam-credential-report.csv
+│   ├── azure-activity-log.json
+│   └── gcp-audit-log.json
+├── containers/
+│   ├── <container_id>-logs.txt
+│   ├── <container_id>-filesystem.tar
+│   └── <container_id>-inspect.json
 └── checksums.sha256
 ```
 

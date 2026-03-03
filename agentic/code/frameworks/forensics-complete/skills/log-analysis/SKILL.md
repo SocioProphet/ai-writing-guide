@@ -84,13 +84,38 @@ When triggered, this skill:
    - VPN/remote access logs: off-hours connections, unusual source geographies
    - Custom application logs: error bursts, API authentication failures
 
-9. **Timeline construction**:
+9. **SSH key fingerprint and session duration analysis**:
+   - Extract accepted public key fingerprints: `grep "Accepted publickey" /var/log/auth.log | awk '{print $NF}'`
+   - Correlate session open/close events to compute session durations; flag sessions that never close (potential persistent shell)
+   - Distinguish opportunistic scanning (broad invalid-user lists) from targeted attacks (specific, plausible usernames) using invalid user enumeration counts
+
+10. **PAM tampering detection**:
+    - Compare installed `/etc/pam.d/` files against package manager originals using `debsums` (Debian) or `rpm -V pam` (RHEL); modifications are a persistence indicator
+    - Identify `pam_exec` entries or module paths outside `/lib/security/` or `/lib64/security/`
+    - List PAM `.so` files not owned by any package to surface injected modules
+
+11. **Btmp and lastb failed login analysis**:
+    - Parse the binary failed-login log with `lastb` to enumerate IPs and accounts targeted
+    - Cross-reference failed-login IPs against successful-login IPs using `comm -12` to identify IPs that eventually succeeded — the strongest brute force confirmation pattern
+
+12. **Windows Event Log correlation**:
+    - Parse Event ID 4624 (successful logon) `LogonType` values: Type 3 (network) and Type 10 (RDP) from unexpected sources indicate lateral movement
+    - Aggregate Event ID 4625 (failed logon) by `TargetUserName` and `IpAddress`; distinguish `SubStatus 0xC000006A` (wrong password) from `0xC0000064` (non-existent account)
+    - Flag Event ID 4648 (explicit credentials) chains across multiple hosts as pass-the-hash or credential relay indicators
+    - Extract and base64-decode PowerShell Event ID 4103 (module logging) and 4104 (script block logging) entries; flag encoded blocks that spawn network connections or write to temp paths
+
+13. **Cloud log parsing**:
+    - AWS CloudTrail: extract `eventName`, `sourceIPAddress`, and `userIdentity`; flag `DeleteTrail`, `StopLogging`, and `AssumeRole` with unusual session names
+    - Azure Activity Log: extract `operationName`, `caller`, and `correlationId`; flag `Microsoft.Authorization/roleAssignments/write` and bulk permission changes
+    - GCP Audit Log: extract `methodName`, `principalEmail`, and `resourceName`; flag `SetIamPolicy`, `CreateServiceAccount`, and `CreateServiceAccountKey` events
+
+14. **Timeline construction**:
    - Merge events from all sources into a unified chronological timeline
    - Normalize timestamps to UTC
    - Annotate events with severity: INFO, SUSPICIOUS, MALICIOUS
    - Group events into phases: Reconnaissance, Initial Access, Execution, Persistence, Privilege Escalation, Lateral Movement, Exfiltration
 
-10. **Write findings document**:
+15. **Write findings document**:
     - Save to `.aiwg/forensics/findings/<hostname>-log-analysis.md`
     - Include: source inventory, attack timeline, IOCs extracted (IPs, usernames, paths), pattern summary
 

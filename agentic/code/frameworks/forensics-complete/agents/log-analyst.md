@@ -179,6 +179,90 @@ grep -oP '/(?:tmp|dev/shm|var/tmp)/[^\s"]+' /evidence/INC-*/logs/*.log | \
   sort -u
 ```
 
+## Deliverables
+
+**`log-analysis-findings.md`** containing:
+
+1. **Log Source Inventory** — what was available, what was missing, time range covered
+2. **Authentication Summary** — successful logins, failed attempts, brute force statistics
+3. **Suspicious Activity Timeline** — UTC-timestamped events in chronological order
+4. **IOC List** — source IPs, suspicious URLs, malicious user agents
+5. **ATT&CK Technique Mappings** — for each finding
+6. **Gaps and Limitations** — log sources absent, time gaps, evidence of tampering
+
+### SSH Deep Analysis
+
+```bash
+# Key fingerprint extraction
+grep "Accepted publickey" /var/log/auth.log | awk '{print $NF}'
+# Session duration analysis (correlate open/close)
+grep -E "session (opened|closed)" /var/log/auth.log
+# Invalid user enumeration (distinguish scanners from targeted attacks)
+grep "Invalid user" /var/log/auth.log | awk '{print $8}' | sort | uniq -c | sort -rn
+```
+
+A high volume of invalid users across a broad username list indicates opportunistic scanning. A small set of specific, valid-looking usernames (e.g., `backup`, `deploy`, `jenkins`) indicates targeted reconnaissance against this organization.
+
+### PAM Analysis
+
+- `/etc/pam.d/` tampering detection: compare installed files against package manager originals using `debsums -c libpam-modules 2>/dev/null` (Debian) or `rpm -V pam 2>/dev/null` (RHEL). Modified PAM configs are a strong persistence indicator.
+- Login profile injection via `pam_exec` or custom modules: `grep -r "pam_exec\|requisite\|sufficient" /etc/pam.d/ | grep -v "^#"` — look for modules pointing to unusual paths outside `/lib/security/` or `/lib64/security/`.
+- Detection commands for non-package PAM modules:
+  ```bash
+  # List PAM modules not owned by any package (Debian)
+  find /lib/security/ /lib64/security/ -name "*.so" -exec dpkg -S {} \; 2>&1 | grep "no path found"
+  # List PAM modules not owned by any package (RHEL)
+  find /lib64/security/ -name "*.so" | xargs rpm -qf 2>&1 | grep "not owned"
+  ```
+
+### Fail2ban Effectiveness
+
+- Parse `fail2ban.log` for ban and unban events: `grep -E "\[sshd\] (Ban|Unban)" /var/log/fail2ban.log | tail -50`
+- Correlate banned IPs with `auth.log` accepted logins to detect ban evasion (attacker rotating IPs or timing out bans):
+  ```bash
+  grep "Ban" /var/log/fail2ban.log | grep -oP '\d+\.\d+\.\d+\.\d+' | sort -u > /tmp/banned-ips.txt
+  grep "Accepted" /var/log/auth.log | grep -f /tmp/banned-ips.txt
+  ```
+- Analyze `bantime`, `findtime`, and `maxretry` configuration adequacy: a short `bantime` (< 1 hour) or high `maxretry` (> 5) against a persistent attacker indicates configuration should be reviewed. Check: `grep -E "bantime|findtime|maxretry" /etc/fail2ban/jail.conf /etc/fail2ban/jail.local 2>/dev/null`
+
+### Btmp Analysis
+
+```bash
+# Failed login binary log
+lastb | head -50
+# Failed logins per IP
+lastb | awk '{print $3}' | sort | uniq -c | sort -rn | head -20
+# Cross-reference with successful logins
+comm -12 <(lastb | awk '{print $3}' | sort -u) <(last | awk '{print $3}' | sort -u)
+```
+
+The `comm` cross-reference is high value: any IP that appears in both `lastb` (failures) and `last` (successes) succeeded after failing — a strong indicator of credential compromise via brute force or credential stuffing.
+
+### Windows Event Log Analysis
+
+Map Windows Event IDs to forensic significance for authentication and execution investigations:
+
+- **Event ID 4624** (Successful Logon): Parse `LogonType` field — Type 2 (interactive), Type 3 (network), Type 10 (RemoteInteractive/RDP). Unusual Type 3 logons from external IPs or service accounts indicate lateral movement.
+- **Event ID 4625** (Failed Logon): Aggregate by `TargetUserName` and `IpAddress` for brute force detection. High failure counts on `SubStatus 0xC000006A` (wrong password) vs. `0xC0000064` (non-existent account) distinguish credential attacks from username enumeration.
+- **Event ID 4648** (Explicit Credentials Used): Logged when a process calls `LogonUser` or `runas` with alternate credentials. Chains of 4648 events across hosts indicate lateral movement via pass-the-hash or credential relay.
+- **PowerShell Event ID 4103** (Module Logging) and **4104** (Script Block Logging): Extract encoded command blocks and decode inline: `[System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(...))`. Obfuscated or encoded blocks that spawn network connections or write to `%TEMP%` are high-confidence execution IOCs.
+
+### Cloud Log Analysis
+
+Cloud provider logs require provider-specific field extraction:
+
+- **AWS CloudTrail**: Key fields — `eventName` (action taken), `sourceIPAddress` (caller IP), `userIdentity` (IAM principal type and ARN). Flag `AssumeRole` calls with unusual `RoleSessionName`, `ConsoleLogin` events from new IPs, and `DeleteTrail` or `StopLogging` (log tampering indicators, T1562.008).
+- **Azure Activity Log**: Key fields — `operationName` (resource action), `caller` (UPN or service principal), `correlationId` (groups related operations). Flag operations from new caller identities, bulk role assignment changes, and `Microsoft.Authorization/roleAssignments/write` events.
+- **GCP Audit Log**: Key fields — `methodName` (API method called), `principalEmail` (authenticated identity), `resourceName` (target resource). Focus on `SetIamPolicy` calls that expand permissions, `CreateServiceAccount`, and `google.iam.admin.v1.CreateServiceAccountKey`.
+
+### AI-Assisted Anomaly Detection
+
+For investigations where log volume exceeds manual analysis capacity:
+
+- **Baseline establishment**: Compute historical login frequency (logins per hour by account), source IP distribution (unique IPs per account per week), and time-of-day patterns (login hour distribution). Deviations exceeding 3 standard deviations warrant investigation.
+- **Statistical deviation detection**: Flag accounts with first-ever logins from new countries, login activity outside established work-hour windows, or source IP count spikes. These surface low-and-slow attacks that threshold-based rules miss.
+- **LLM-assisted narrative generation**: For complex multi-source event chains (50+ correlated events across auth, syslog, web, and application logs), feed the timeline to an LLM with forensic context to produce an analyst-readable attack narrative. Always verify LLM-generated narratives against the raw log evidence — narrative generation is an aid to communication, not a substitute for evidence.
+
 ## ATT&CK Mapping
 
 Map log findings to MITRE ATT&CK technique IDs for structured reporting:
@@ -194,17 +278,11 @@ Map log findings to MITRE ATT&CK technique IDs for structured reporting:
 | UNION SELECT in web logs | T1190 — Exploit Public-Facing Application | Initial Access |
 | CRON job executing curl | T1059.004 — Command and Scripting Interpreter: Unix Shell | Execution |
 | SSH login from external IP | T1021.004 — Remote Services: SSH | Lateral Movement |
-
-## Deliverables
-
-**`log-analysis-findings.md`** containing:
-
-1. **Log Source Inventory** — what was available, what was missing, time range covered
-2. **Authentication Summary** — successful logins, failed attempts, brute force statistics
-3. **Suspicious Activity Timeline** — UTC-timestamped events in chronological order
-4. **IOC List** — source IPs, suspicious URLs, malicious user agents
-5. **ATT&CK Technique Mappings** — for each finding
-6. **Gaps and Limitations** — log sources absent, time gaps, evidence of tampering
+| Non-package PAM modules detected | T1556.003 — Modify Authentication Process: PAM | Credential Access |
+| Windows Event ID 4648 chains across hosts | T1550.002 — Use Alternate Authentication: Pass the Hash | Lateral Movement |
+| AWS DeleteTrail / StopLogging events | T1562.008 — Impair Defenses: Disable Cloud Logs | Defense Evasion |
+| SSH key added to authorized_keys | T1098.004 — Account Manipulation: SSH Authorized Keys | Persistence |
+| New IAM role bindings or service accounts | T1098 — Account Manipulation | Persistence |
 
 ## Few-Shot Examples
 

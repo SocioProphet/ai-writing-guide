@@ -192,6 +192,196 @@ awk '$NF > 30 {print $1, $4, $7, $9, $NF}' \
   /evidence/INC-*/logs/nginx-access.log 2>/dev/null | head -20
 ```
 
+### 7. Reverse Shell Detection
+
+A reverse shell is an outbound connection from the target host initiated by a shell process rather than a legitimate service. Because the connection is outbound, it passes most perimeter firewall rules without special configuration.
+
+```bash
+# Identify shell processes with active outbound connections (Linux)
+ss -tunap | grep -E 'bash|sh|python|perl|nc|ncat'
+
+# Cross-reference with the triage connection snapshot
+grep -E 'bash|/bin/sh|python|perl|ncat|netcat|nc ' \
+  /evidence/INC-*/triage/network-state-at-triage.txt
+
+# Named pipe / FIFO-based shells leave file descriptors pointing at fifos
+ls -la /proc/*/fd 2>/dev/null | grep -E 'pipe|fifo'
+
+# Stageless indicators: single binary, no dropper, payload embedded in process memory
+# Staged indicators: initial stager (small downloader) followed by second connection
+# Check for two-phase connections from the same source IP at short intervals
+grep ESTAB /evidence/INC-*/triage/network-state-at-triage.txt | \
+  awk '{print $5}' | sort | uniq -d
+```
+
+Reverse shells from shell interpreter processes (bash, sh) are unambiguous indicators of compromise. Named pipe shells (`mkfifo /tmp/f; nc ... < /tmp/f | /bin/sh > /tmp/f`) leave FIFOs on disk — check `/tmp` and world-writable directories for anonymous named pipes.
+
+### 8. Cryptominer Detection
+
+Cryptomining malware establishes outbound connections to mining pool infrastructure. The connections are long-lived, high-bandwidth, and occur on well-known pool ports.
+
+```bash
+# Mining pool protocol connections (stratum+tcp uses these ports)
+grep -E ':3333|:4444|:8333|:14444|:45700' \
+  /evidence/INC-*/triage/network-state-at-triage.txt
+
+# Known mining pool domains in DNS logs
+grep -iE "xmrpool|nanopool|minexmr|f2pool|antpool|nicehash|moneropool|supportxmr" \
+  /var/log/syslog 2>/dev/null
+
+# CPU-intensive processes with concurrent external connections
+# Correlate ps output (high %CPU) with ss output (external IP)
+grep ESTAB /evidence/INC-*/triage/network-state-at-triage.txt | \
+  awk '{print $6}' | grep -oP 'pid=\K[0-9]+' | \
+  xargs -I{} ps -o pid,ppid,pcpu,cmd -p {} 2>/dev/null
+
+# XMR/BTC wallet address patterns in process environment variables
+grep -r "4[0-9A-Za-z]\{94\}\|[13][a-km-zA-HJ-NP-Z1-9]\{25,34\}" \
+  /proc/*/environ 2>/dev/null
+```
+
+Cryptominers are often deployed alongside initial access payloads as a secondary monetization strategy. A miner connection does not preclude a more serious threat — correlate with the persistence hunter's findings to determine whether a full backdoor is also present.
+
+### 9. Windows Lateral Movement
+
+Windows environments provide multiple built-in remote administration protocols that attackers repurpose for lateral movement. Each leaves characteristic network fingerprints.
+
+```bash
+# RDP (T1021.001): port 3389 inbound from unexpected internal sources
+# On Windows: Event ID 4624 Logon Type 10 = RemoteInteractive (RDP)
+grep ":3389" /evidence/INC-*/triage/network-state-at-triage.txt
+# NLA anomalies: CredSSP failures before successful logon indicate credential spray
+
+# WMI (T1047): DCOM initiates on port 135, negotiates high ephemeral port
+# wmiprvse.exe spawning cmd.exe or powershell.exe is a direct lateral movement indicator
+grep ":135" /evidence/INC-*/triage/network-state-at-triage.txt
+# Correlate with process tree: parent wmiprvse.exe → child cmd.exe or powershell.exe
+
+# SMB (T1021.002): port 445, access to admin$ and C$ shares
+# PsExec creates PSEXESVC service on target — look for service creation events
+grep ":445" /evidence/INC-*/triage/network-state-at-triage.txt
+
+# WinRM (T1021.006): HTTP-based remote shell on 5985 (HTTP) or 5986 (HTTPS)
+grep -E ":5985|:5986" /evidence/INC-*/triage/network-state-at-triage.txt
+```
+
+All four protocols are legitimate Windows administration features. The distinguishing factor is the source: lateral movement originates from hosts that have no documented administrative relationship with the target. Build the expected communication matrix from the baseline and flag any deviation.
+
+### 10. PCAP Analysis Guidance
+
+Packet captures provide the highest-fidelity network evidence. Use these patterns when PCAP is available from network taps, span ports, or endpoint EDR tools.
+
+```bash
+# tcpdump: capture C2-relevant traffic during live response (before containment)
+tcpdump -i eth0 -w /evidence/INC-001/captures/live-$(date +%s).pcap \
+  'not port 22 and not src net 10.0.0.0/8'
+
+# tcpdump: targeted capture for specific suspicious IP
+tcpdump -i eth0 -w /evidence/INC-001/captures/c2-185.220.101.47.pcap \
+  'host 185.220.101.47'
+
+# tshark: extract all HTTP host headers to identify C2 domains
+tshark -r /evidence/INC-001/captures/live.pcap \
+  -Y 'http.request' -T fields -e ip.dst -e http.host -e http.request.uri | \
+  sort | uniq -c | sort -rn
+
+# tshark: identify long-lived connections (potential C2 keep-alive)
+tshark -r /evidence/INC-001/captures/live.pcap \
+  -T fields -e ip.src -e ip.dst -e tcp.stream -e frame.time_relative | \
+  awk 'NR>1 {streams[$3]=$4; src[$3]=$1; dst[$3]=$2} END {for (s in streams) if (streams[s]+0 > 300) print src[s], dst[s], streams[s]}'
+
+# tshark: extract DNS queries for DGA analysis
+tshark -r /evidence/INC-001/captures/live.pcap \
+  -Y 'dns.flags.response == 0' -T fields -e dns.qry.name | \
+  sort | uniq -c | sort -rn
+
+# Wireshark display filter: C2 HTTP beaconing candidates
+# http.request.method == "POST" && !(http.host contains "microsoft") && !(http.host contains "google")
+
+# Wireshark display filter: DNS tunneling candidates
+# dns && frame.len > 200
+
+# Zeek/Bro conn.log: summarize connections by destination with byte counts
+awk -F'\t' 'NR>8 {print $5, $6, $10, $16}' /var/log/zeek/conn.log 2>/dev/null | \
+  sort | uniq -c | sort -rn | head -30
+```
+
+When PCAP is unavailable, Zeek/Bro conn.log provides pre-parsed connection summaries including duration, bytes transferred, and protocol. If neither is available, fall back to firewall logs and the triage connection snapshot.
+
+### 11. Cloud VPC Flow Log Analysis
+
+Cloud environments replace traditional network taps with VPC flow logs. These logs capture 5-tuple connection metadata but not payload content.
+
+```bash
+# AWS VPC Flow Logs: default format fields
+# version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status
+# Filter for REJECT (blocked by security group or NACL) to find scanning activity
+awk '$14 == "REJECT" {print $5, $7}' /evidence/INC-*/aws-vpc-flow.log | \
+  sort | uniq -c | sort -rn | head -20
+
+# AWS: identify ENI-level anomalies — which interface has unexpected external traffic
+awk '$14 == "ACCEPT" && $5 !~ /^10\.|^172\.(1[6-9]|2[0-9]|3[01])\.|^192\.168\./ {print $3, $5, $6}' \
+  /evidence/INC-*/aws-vpc-flow.log | sort | uniq -c | sort -rn | head -20
+
+# Azure NSG Flow Logs: flow tuple format (version 2)
+# Fields: time, systemId, macAddress, category, resourceId, operationName, properties
+# Extract accepted outbound flows
+grep '"decision":"A"' /evidence/INC-*/azure-nsg-flow.json | \
+  python3 -c "import sys, json; [print(json.loads(l)) for l in sys.stdin]" 2>/dev/null | head -30
+
+# GCP VPC Flow Logs (exported to Cloud Storage or BigQuery)
+# 5-tuple: src_ip, src_port, dest_ip, dest_port, protocol
+# Subnet-level pattern: identify which subnet is generating most external traffic
+awk -F',' 'NR>1 {print $3}' /evidence/INC-*/gcp-vpc-flow.csv 2>/dev/null | \
+  grep -v "^10\.\|^172\.\|^192\.168\." | sort | uniq -c | sort -rn | head -20
+```
+
+VPC flow logs are typically stored in object storage with a delay of 5-15 minutes from event time. When analyzing cloud incidents, request the flow logs for a window starting two hours before the suspected initial access time. ENI-level analysis in AWS allows you to pinpoint which specific resource (EC2 instance, Lambda, container) initiated the suspicious connection.
+
+### 12. DGA and DoH Detection
+
+Domain Generation Algorithms produce high-entropy random-looking domains. DNS over HTTPS tunnels DNS queries inside HTTPS traffic to bypass DNS monitoring.
+
+```bash
+# DGA detection: high-entropy domain names in DNS logs
+# Calculate character entropy; DGA domains typically score > 3.5 bits/char
+grep "query\[" /var/log/syslog 2>/dev/null | grep -oP 'for \K[^\s]+' | \
+  python3 -c "
+import sys, math
+from collections import Counter
+for line in sys.stdin:
+    d = line.strip()
+    label = d.split('.')[0]
+    if len(label) < 6: continue
+    c = Counter(label)
+    entropy = -sum((v/len(label)) * math.log2(v/len(label)) for v in c.values())
+    if entropy > 3.5:
+        print(f'{entropy:.2f}  {d}')
+" | sort -rn | head -30
+
+# NXDomain ratio: DGA malware queries many non-existent domains
+# High NXDomain count relative to successful queries is a strong DGA indicator
+grep "NXDOMAIN\|query\[" /var/log/syslog 2>/dev/null | \
+  awk '/NXDOMAIN/{nx++} /query\[/{total++} END {print "NXDomain:", nx, "/ Total:", total, "/ Ratio:", nx/total}'
+
+# DoH detection: HTTPS traffic to known DoH resolver IPs on port 443
+# These are legitimate resolvers — traffic volume and originating process matter
+grep -E "1\.1\.1\.1:443|1\.0\.0\.1:443|8\.8\.8\.8:443|8\.8\.4\.4:443|9\.9\.9\.9:443|208\.67\.222\.222:443" \
+  /evidence/INC-*/triage/network-state-at-triage.txt
+
+# DoH via certificate inspection: identify HTTPS sessions to DoH resolvers
+# (requires PCAP; SNI will show cloudflare-dns.com, dns.google, etc.)
+tshark -r /evidence/INC-001/captures/live.pcap \
+  -Y 'tls.handshake.extensions_server_name contains "dns.google" or tls.handshake.extensions_server_name contains "cloudflare-dns.com"' \
+  -T fields -e ip.src -e tls.handshake.extensions_server_name 2>/dev/null
+
+# Unusual HTTPS to DNS providers from non-browser processes (DoH bypass)
+grep "1\.1\.1\.1:443\|8\.8\.8\.8:443" /evidence/INC-*/triage/network-state-at-triage.txt | \
+  grep -v "firefox\|chrome\|safari\|brave\|edge"
+```
+
+DGA and DoH are frequently combined: malware uses DoH to resolve its DGA-generated C2 domain, bypassing corporate DNS monitoring entirely. A process making HTTPS connections to `1.1.1.1:443` or `8.8.8.8:443` is not using the system resolver — it has hardcoded DoH to avoid detection. Correlate the originating process with the persistence hunter's findings.
+
 ## ATT&CK Techniques for Network Indicators
 
 | Indicator | ATT&CK Technique | Tactic |
@@ -205,6 +395,17 @@ awk '$NF > 30 {print $1, $4, $7, $9, $NF}' \
 | Database process with external connections | T1048 — Exfiltration Over Alternative Protocol | Exfiltration |
 | High-frequency DNS to single domain | T1568.002 — Dynamic Resolution: Domain Generation Algorithms | C2 |
 | Outbound connections from web server process | T1059 — Command and Scripting Interpreter | Execution |
+| Shell process with outbound connection (bash, nc, python) | T1059 — Command and Scripting Interpreter | Execution |
+| Raw socket or non-TCP/UDP protocol on wire | T1095 — Non-Application Layer Protocol | C2 |
+| Legitimate protocol encapsulating C2 (DNS, ICMP, HTTP tunnels) | T1572 — Protocol Tunneling | C2 |
+| Commercial or open-source remote access tool detected | T1219 — Remote Access Software | C2 |
+| Mining pool connection (stratum+tcp, ports 3333/4444/8333) | T1496 — Resource Hijacking | Impact |
+| RDP logon from unexpected internal source (Event 4624 Type 10) | T1021.001 — Remote Services: RDP | Lateral Movement |
+| WMI lateral movement (wmiprvse.exe child processes, port 135) | T1047 — Windows Management Instrumentation | Lateral Movement |
+| SMB admin share access (admin$, C$), PsExec artifacts | T1021.002 — Remote Services: SMB/Windows Admin Shares | Lateral Movement |
+| WinRM connections (ports 5985/5986) | T1021.006 — Remote Services: Windows Remote Management | Lateral Movement |
+| High NXDomain ratio, high-entropy subdomains | T1568.002 — Dynamic Resolution: Domain Generation Algorithms | C2 |
+| HTTPS to known DoH resolvers (1.1.1.1:443, 8.8.8.8:443) | T1071.004 — Application Layer Protocol: DNS | C2 |
 
 ## Deliverables
 

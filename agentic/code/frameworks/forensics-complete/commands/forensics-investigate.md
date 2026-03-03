@@ -85,6 +85,102 @@ When invoked, this command:
    - Confirm evidence chain of custody integrity
    - Check report completeness before marking investigation closed
 
+## Profile-to-Plan Generation
+
+When a target profile exists at `.aiwg/forensics/profiles/<hostname>-<date>/system-profile.md`, `forensics-investigate` reads it before generating the investigation plan. This enables the plan to contain parameterized, host-specific commands instead of generic placeholders.
+
+### 1. Reading the Target Profile
+
+The command resolves the profile path from the target argument:
+
+1. Derive hostname from the connection string (e.g., `ssh://admin@web01` → `web01`)
+2. Scan `.aiwg/forensics/profiles/` for directories matching `<hostname>-*`
+3. Select the most recently dated match (e.g., `web01-2026-02-27/`)
+4. Load `system-profile.md` (human-readable) and `system-profile.json` (machine-readable) from that directory
+5. If no profile is found, log a warning and proceed with an unparameterized plan; prompt the investigator to run `/forensics-profile` first
+
+The investigation plan's **Target Profile Reference** section is populated from the resolved path:
+
+```yaml
+target_profile_path: .aiwg/forensics/profiles/web01-2026-02-27/system-profile.md
+profile_date: 2026-02-27
+```
+
+### 2. Parameterizing Commands from Profile Data
+
+The following profile fields are extracted and substituted into investigation plan commands:
+
+| Profile Field | Plan Variable | Example Usage |
+|---------------|---------------|---------------|
+| Hostname | `{{hostname}}` | `last -n 50 web01` |
+| Case ID | `{{case_id}}` | `ps auxf > /tmp/INV-2026-02-27-web01_ps_snapshot.txt` |
+| Users with shell access | `{{expected_users}}` | Auth log grep patterns scoped to known accounts |
+| Running services list | `{{expected_service_pattern}}` | `lsof -i | grep -v '<pattern>'` |
+| Listening ports | `{{expected_ports}}` | Connection count alert comparison |
+| Investigation date | `{{investigation_date}}` | `journalctl --since "2026-02-27 00:00:00"` |
+| Log lookback window | `{{log_lookback_days}}` | `--since` timestamps for auth and syslog queries |
+| Timeline window | `{{timeline_window_days}}` | `find / -newer` reference marker |
+| Large file threshold | `{{large_file_threshold_mb}}` | `find / -size +100M` |
+| Connection alert threshold | `{{connection_count_alert_threshold}}` | `awk '$1 >= 20'` in network phase |
+| Failed login threshold | `{{failed_login_threshold}}` | Alert threshold in auth analysis |
+| Package manager | `{{package_manager_history_command}}` | Distro-appropriate package history command |
+| Log file paths | `{{web_access_log}}` | Service-specific log path substitution |
+| Evidence storage path | `{{evidence_storage_path}}` | Evidence collection target directory |
+| Escalation contact | `{{escalation_contact}}` | Red flag notification target |
+
+User and authentication commands in Phase 2 are scoped to the known account list from the profile's **Users with Shell Access** table. For example, if the profile documents `admin`, `deploy`, and `root`, the SSH key sweep is limited to those home directories rather than iterating all of `/home`.
+
+### 3. Service-Specific Check Inclusion
+
+Phase 3 (Process and Service Audit) and Phase 7 (Log Analysis) include service-specific checks only for services listed in the profile's **Services and Ports** table with `Expected: Yes`.
+
+The command applies these rules:
+
+| Service Present in Profile | Checks Included |
+|----------------------------|-----------------|
+| `nginx` or `apache2` | Web access log parsing, HTTP error pattern grep |
+| `mysqld` or `postgresql` | Database error log check, unusual connection sources |
+| `sshd` | SSH auth failure threshold, authorized_keys sweep |
+| `docker` / `containerd` | Phase 8 (Container / Docker Audit) is included; otherwise skipped |
+| No container runtime listed | Phase 8 is excluded from the generated plan with a note |
+| Cloud metadata service detected | Cloud Analyst agent is added to the Phase 5 parallel pool |
+
+The Phase 8 section header in the generated plan reflects the include/exclude decision explicitly:
+
+```
+### Phase 8: Container / Docker Audit
+> INCLUDED — docker detected in target profile (3 running containers at baseline)
+```
+
+or:
+
+```
+### Phase 8: Container / Docker Audit
+> SKIPPED — no container runtime in target profile
+```
+
+Services not present in the profile that are found running during triage are flagged as anomalies in the triage summary and receive targeted investigation commands appended to Phase 3.
+
+### 4. Deriving Expected vs. Suspicious Baselines
+
+The profile's **Services and Ports** and **Network Baseline** sections establish what is normal. The generated plan encodes these baselines directly into triage commands:
+
+**Port baseline** — The expected listening ports from the profile (e.g., `22`, `80`, `443`, `3306`) are embedded in the Phase 6 network check. Any port reported by `ss -tlnpu` that is not in this list is flagged inline:
+
+```bash
+# Ports not in baseline (web01 profile: 22, 80, 443, 3306)
+ss -tlnpu | awk 'NR>1 {print $5}' | grep -oP ':\K[0-9]+' | sort -un \
+  | grep -vE '^(22|80|443|3306)$' | while read p; do echo "UNEXPECTED PORT: $p"; done
+```
+
+**Outbound connection baseline** — The expected outbound destinations from the profile's **Expected Outbound Connections** table are embedded in the network phase as an allowlist. Connections to destinations outside this list are flagged for review.
+
+**User baseline** — The known shell-access accounts from the profile are compared against `getent passwd` output at investigation time. New accounts not in the profile are flagged in Phase 2 as potential persistence artifacts.
+
+**Container baseline** — If the profile includes a **Running Containers (Baseline)** table, the generated plan compares current `docker ps` output against that baseline. Containers not present at profile time are flagged as anomalous in Phase 8.
+
+**Failed login threshold** — The `failed_login_threshold` from the profile's **Investigation Scope Configuration** block (default: `10`) is substituted into the auth log grep commands. Accounts exceeding this threshold in Phase 2 are surfaced as priority findings.
+
 ## Scope Profiles
 
 | Scope | Stages | Use Case |
