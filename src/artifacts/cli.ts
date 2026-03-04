@@ -107,7 +107,7 @@ async function handleBuild(args: string[]): Promise<void> {
     // Build a specific graph
     await buildIndex(cwd, { force, verbose, scope, graph });
   } else {
-    // Default: build project + codebase (framework is built via `aiwg use`)
+    // Default: build project-local graphs only
     await buildIndex(cwd, { force, verbose, scope, graph: 'project' });
     await buildIndex(cwd, { force, verbose, graph: 'codebase' });
   }

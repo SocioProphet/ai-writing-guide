@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import type { GraphType, IndexStats } from './types.js';
 import { GRAPH_CONFIGS } from './types.js';
-import { loadIndexStats, indexExists, loadGraphIndexFile } from './index-reader.js';
+import { loadIndexStats, loadGraphIndexFile } from './index-reader.js';
 
 export interface StatsOptions {
   json?: boolean;
@@ -60,23 +60,74 @@ export async function showStats(
 ): Promise<void> {
   const { graph } = options;
 
-  if (!graph && !indexExists(cwd)) {
-    console.error('Error: No artifact index found.');
-    console.log("Run 'aiwg index build' first to create the index.");
-    process.exit(1);
+  if (graph) {
+    // Single graph mode
+    const stats = loadGraphIndexFile<IndexStats>(cwd, 'stats.json', graph);
+    if (!stats) {
+      console.error(`Error: No artifact index found for graph '${graph}'.`);
+      console.log("Run 'aiwg index build' first to create the index.");
+      process.exit(1);
+    }
+    await renderStats(cwd, stats, options, graph);
+    return;
   }
 
-  const stats = graph
-    ? loadGraphIndexFile<IndexStats>(cwd, 'stats.json', graph)
-    : loadIndexStats(cwd);
-  if (!stats) {
-    console.error('Error: Failed to load index statistics.');
-    process.exit(1);
+  // No graph specified: show per-project graphs (framework is global, use --graph framework)
+  const graphTypes: GraphType[] = ['project', 'codebase'];
+  const availableGraphs: { type: GraphType; stats: IndexStats }[] = [];
+  for (const g of graphTypes) {
+    const s = loadGraphIndexFile<IndexStats>(cwd, 'stats.json', g);
+    if (s) availableGraphs.push({ type: g, stats: s });
+  }
+
+  // Fall back to legacy root index
+  if (availableGraphs.length === 0) {
+    const legacyStats = loadIndexStats(cwd);
+    if (!legacyStats) {
+      console.error('Error: No artifact index found.');
+      console.log("Run 'aiwg index build' first to create the index.");
+      process.exit(1);
+    }
+    await renderStats(cwd, legacyStats, options);
+    return;
   }
 
   if (options.json) {
-    // Add coverage info
-    const totalFiles = countArtifactFiles(cwd, graph);
+    // JSON mode: aggregate all graphs into one response
+    const combined: Record<string, unknown> = {};
+    for (const { type, stats: s } of availableGraphs) {
+      const totalFiles = countArtifactFiles(cwd, type);
+      combined[type] = {
+        ...s,
+        coverage: {
+          indexed: s.totalArtifacts,
+          totalFiles,
+          percentage: totalFiles > 0 ? Math.round((s.totalArtifacts / totalFiles) * 100) : 100,
+        },
+      };
+    }
+    console.log(JSON.stringify(combined, null, 2));
+    return;
+  }
+
+  // Human-readable: show each graph
+  for (const { type, stats: s } of availableGraphs) {
+    console.log(`\n[${ type.toUpperCase() } GRAPH]`);
+    await renderStats(cwd, s, { ...options, json: false }, type);
+  }
+}
+
+/**
+ * Render stats for a single graph (JSON or human-readable)
+ */
+async function renderStats(
+  cwd: string,
+  stats: IndexStats,
+  options: StatsOptions,
+  graphType?: GraphType
+): Promise<void> {
+  if (options.json) {
+    const totalFiles = countArtifactFiles(cwd, graphType);
     console.log(JSON.stringify({
       ...stats,
       coverage: {
@@ -133,7 +184,7 @@ export async function showStats(
   console.log('');
 
   // Coverage
-  const totalFiles = countArtifactFiles(cwd, graph);
+  const totalFiles = countArtifactFiles(cwd, graphType);
   const coverage = totalFiles > 0
     ? Math.round((stats.totalArtifacts / totalFiles) * 100)
     : 100;
