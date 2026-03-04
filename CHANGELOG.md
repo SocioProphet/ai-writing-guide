@@ -5,6 +5,57 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.3.1] - 2026-03-03 – "Discovery & Durability" Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **`aiwg index` subsystem** | Agents can search, query deps, and inspect stats across `.aiwg/` artifacts |
+| **Forensics agent gap-fills** | 6 agents and 3 commands rewritten with full operational detail; 660-line integration test suite |
+| **Color Palette addon** | Standalone addon for accessible color palette generation with WCAG contrast checking |
+| **Ralph external crash resilience** | SnapshotManager API fixed, state cleanup, e2e tests with real process spawning |
+| **`.aiwg/` tracked in git** | Project artifacts version-controlled, excluded from npm/edge deploys |
+| **Documentation accuracy sweep** | 7 drift items fixed: agent counts, command totals, skill manifest gaps, Copilot path mismatch |
+| **`--model` blanket override** | `aiwg use sdlc --model sonnet` overrides all agent model selections |
+| **`--use-dev` testing flag** | Point CLI at local repo checkout for framework development |
+
+### Added
+
+- **`aiwg index` subsystem** — `build`, `query`, `deps`, `stats` subcommands for artifact discovery with multi-graph architecture, incremental builds, and JSON output
+- **`artifact-discovery` rule** — agents must query the index before phase work and check deps before modifying artifacts
+- **`artifact-lookup` skill** — natural language artifact search via `aiwg index` CLI
+- **`aiwg cleanup-audit` command** — dead code analysis with `dead-code-analyzer` agent and `cleanup-audit` skill
+- **`--model` blanket override** — `aiwg use sdlc --model sonnet` sets all agent model selections in one flag
+- **`--use-dev` flag** — `aiwg --use-dev` points CLI at local repo for development testing
+- **Color Palette addon** (`agentic/code/addons/color-palette/`) — 3 skills (color-palette, color-accessibility, color-trends), 2 templates, 1 rule
+- **`.aiwg/` git tracking** — project artifacts version-controlled with npm/edge exclusion gates
+- **Forensics integration tests** — 660-line test suite validating agent structure, manifest integrity, skill completeness, and cross-references
+- **Ralph external e2e tests** — real process spawn tests with stub CLI and provider adapter fixtures
+- **How AIWG Works guide** (`docs/how-it-works.md`) — plain-language explainer with research-grounded memory section
+- **Mobile responsive CSS** for docsite template
+
+### Changed
+
+- **Forensics agents** — 6 agents rewritten with full operational procedures: acquisition-agent, container-analyst, log-analyst, network-analyst, persistence-hunter, triage-agent (#381-391)
+- **Forensics commands** — 3 commands expanded: forensics-acquire, forensics-investigate, forensics-triage
+- **Forensics skills** — 3 skills updated: container-forensics, evidence-preservation, log-analysis
+- **Skills manifest** — added 12 missing entries (code-chunker, decompose-file, issue-driven-ralph, 9 regression-* skills); 20 → 32 total
+- **Skill inventory** — SDLC skills 12 → 32 listed, total 53 → 75
+- **CLAUDE.md** — command count 44 → 47, Ralph category 4 → 7, added ralph-external/memory/config
+- **cli-reference.md** — agent count 35+ → 90, Ralph category 4 → 7, total 44 → 47
+- **SDLC README** — agent count 70+ → 90
+- **Multi-graph index architecture** — content type graphs, dependency graphs, incremental build support
+- **`traceability-check` skill** — updated to use `aiwg index` for artifact lookup
+
+### Fixed
+
+- **`platform-paths.ts`** — Copilot commands path `.github/commands` → `.github/agents` to match JS provider behavior
+- **Ralph external SnapshotManager** — API mismatch causing fatal path error during loop execution
+- **Ralph loop state cleanup** — completed loops now clean up state files automatically
+- **Unused `basename` import** in ralph-launcher removed
+- **CI `.aiwg/` exclusion** — added gates to build-plugins, ci, and npm-publish workflows
+
+---
+
 ## [2026.3.0] - 2026-03-01 – "Model Sync" Service Release
 
 | What changed | Why you care |
