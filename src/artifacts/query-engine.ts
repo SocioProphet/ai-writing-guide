@@ -11,7 +11,7 @@
 
 import { minimatch } from 'minimatch';
 import type { QueryParams, QueryResult, MetadataEntry, GraphType, ArtifactIndex } from './types.js';
-import { loadMetadataIndex, indexExists, loadGraphIndexFile } from './index-reader.js';
+import { loadMetadataIndex, loadGraphIndexFile } from './index-reader.js';
 
 export interface QueryOptions {
   json?: boolean;
@@ -66,23 +66,41 @@ export async function queryIndex(
   options: QueryOptions = {}
 ): Promise<void> {
   const { graph } = options;
-
-  if (!graph && !indexExists(cwd)) {
-    console.error('Error: No artifact index found.');
-    console.log("Run 'aiwg index build' first to create the index.");
-    process.exit(1);
-  }
-
   const startTime = Date.now();
-  const index = graph
-    ? loadGraphIndexFile<ArtifactIndex>(cwd, 'metadata.json', graph)
-    : loadMetadataIndex(cwd);
-  if (!index) {
-    console.error('Error: Failed to load artifact index.');
-    process.exit(1);
-  }
 
-  let candidates = Object.values(index.entries);
+  let candidates: MetadataEntry[];
+
+  if (graph) {
+    // Single graph mode
+    const index = loadGraphIndexFile<ArtifactIndex>(cwd, 'metadata.json', graph);
+    if (!index) {
+      console.error(`Error: No artifact index found for graph '${graph}'.`);
+      console.log("Run 'aiwg index build' first to create the index.");
+      process.exit(1);
+    }
+    candidates = Object.values(index.entries);
+  } else {
+    // No graph specified: search across all project-local graphs
+    const graphTypes: GraphType[] = ['project', 'codebase'];
+    const allEntries: MetadataEntry[] = [];
+    for (const g of graphTypes) {
+      const idx = loadGraphIndexFile<ArtifactIndex>(cwd, 'metadata.json', g);
+      if (idx) allEntries.push(...Object.values(idx.entries));
+    }
+
+    // Fall back to legacy root index
+    if (allEntries.length === 0) {
+      const legacy = loadMetadataIndex(cwd);
+      if (!legacy) {
+        console.error('Error: No artifact index found.');
+        console.log("Run 'aiwg index build' first to create the index.");
+        process.exit(1);
+      }
+      allEntries.push(...Object.values(legacy.entries));
+    }
+
+    candidates = allEntries;
+  }
 
   // Apply filters
   if (params.type) {

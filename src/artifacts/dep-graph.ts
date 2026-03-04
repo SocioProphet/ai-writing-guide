@@ -10,7 +10,7 @@
  */
 
 import type { DependencyGraph, GraphType } from './types.js';
-import { loadDependencyGraph, indexExists, loadGraphIndexFile } from './index-reader.js';
+import { loadDependencyGraph, loadGraphIndexFile } from './index-reader.js';
 
 export interface DepsOptions {
   direction?: 'upstream' | 'downstream' | 'both';
@@ -95,18 +95,35 @@ export async function showDeps(
 ): Promise<void> {
   const { direction = 'both', depth = 3, json = false, graph: graphType } = options;
 
-  if (!graphType && !indexExists(cwd)) {
-    console.error('Error: No artifact index found.');
-    console.log("Run 'aiwg index build' first to create the index.");
-    process.exit(1);
-  }
+  let depGraph: DependencyGraph | null = null;
 
-  const depGraph = graphType
-    ? loadGraphIndexFile<DependencyGraph>(cwd, 'dependencies.json', graphType)
-    : loadDependencyGraph(cwd);
-  if (!depGraph) {
-    console.error('Error: Failed to load dependency graph.');
-    process.exit(1);
+  if (graphType) {
+    depGraph = loadGraphIndexFile<DependencyGraph>(cwd, 'dependencies.json', graphType);
+    if (!depGraph) {
+      console.error(`Error: No artifact index found for graph '${graphType}'.`);
+      console.log("Run 'aiwg index build' first to create the index.");
+      process.exit(1);
+    }
+  } else {
+    // Merge dependency graphs from project-local graphs
+    const graphTypes: GraphType[] = ['project', 'codebase'];
+    const merged: DependencyGraph = {};
+    for (const g of graphTypes) {
+      const partial = loadGraphIndexFile<DependencyGraph>(cwd, 'dependencies.json', g);
+      if (partial) Object.assign(merged, partial);
+    }
+
+    if (Object.keys(merged).length > 0) {
+      depGraph = merged;
+    } else {
+      // Legacy fallback
+      depGraph = loadDependencyGraph(cwd);
+      if (!depGraph) {
+        console.error('Error: No artifact index found.');
+        console.log("Run 'aiwg index build' first to create the index.");
+        process.exit(1);
+      }
+    }
   }
 
   if (!depGraph[artifactPath]) {

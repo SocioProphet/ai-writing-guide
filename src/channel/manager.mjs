@@ -169,7 +169,12 @@ export async function switchToEdge() {
 }
 
 /**
- * Switch to dev mode (use local repo as framework source)
+ * Switch to dev mode (use local repo as both framework source and CLI)
+ *
+ * In dev mode, the CLI entry point delegates to the dev repo's facade,
+ * so all code (including `aiwg index`, `aiwg use`, etc.) runs from the
+ * local build rather than the npm-installed package.
+ *
  * @param {string} devPath - Path to the local development repository
  */
 export async function switchToDev(devPath) {
@@ -189,13 +194,26 @@ export async function switchToDev(devPath) {
     process.exit(1);
   }
 
+  // Verify CLI facade exists (needed for delegation)
+  try {
+    await fs.access(path.join(resolvedPath, 'src', 'cli', 'facade.mjs'));
+  } catch {
+    console.error(`Error: ${resolvedPath}/src/cli/facade.mjs not found.`);
+    console.error('Dev mode requires the source CLI facade. Is this the right repo?');
+    process.exit(1);
+  }
+
   config.channel = 'edge';
   config.edgePath = resolvedPath;
   config.devMode = true;
   await saveConfig(config);
 
   console.log('Switched to dev mode.');
-  console.log(`Framework source: ${resolvedPath}`);
+  console.log(`Dev repo:    ${resolvedPath}`);
+  console.log(`CLI source:  ${resolvedPath}/src/cli/facade.mjs`);
+  console.log('');
+  console.log('The aiwg command now runs code from your local repo.');
+  console.log('After making changes, run: npm run build');
   console.log('');
   console.log('Commands:');
   console.log('  aiwg use all          Deploy from local source');

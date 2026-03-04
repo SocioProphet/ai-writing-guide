@@ -43,7 +43,9 @@ async function main() {
 
   if (args[0] === '--use-dev') {
     const { switchToDev } = await import('../src/channel/manager.mjs');
-    await switchToDev(packageRoot);
+    // Accept optional path argument, default to cwd
+    const devPath = args[1] || process.cwd();
+    await switchToDev(devPath);
     return;
   }
 
@@ -58,10 +60,25 @@ async function main() {
     // Silently ignore update check failures
   });
 
+  // Dev mode: delegate to the dev repo's CLI facade so all code runs from
+  // the local build (not just framework content). This ensures commands like
+  // `aiwg index stats` use the locally compiled TypeScript.
+  const { loadConfig } = await import('../src/channel/manager.mjs');
+  const config = await loadConfig();
+  if (config.devMode && config.edgePath && config.edgePath !== packageRoot) {
+    const devFacade = path.join(config.edgePath, 'src', 'cli', 'facade.mjs');
+    try {
+      const { run: devRun } = await import(devFacade);
+      await devRun(args, { cwd: process.cwd() });
+      return;
+    } catch (err) {
+      console.error(`Dev mode: failed to load facade from ${config.edgePath}`);
+      console.error(`  ${err.message}`);
+      console.error('Falling back to installed version.');
+    }
+  }
+
   // Run the CLI via facade (supports both legacy and new routers)
-  // The facade will determine which router to use based on:
-  // - AIWG_USE_NEW_ROUTER environment variable
-  // - --experimental-router or --legacy-router flags
   await run(args, { cwd: process.cwd() });
 }
 
