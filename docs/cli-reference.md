@@ -1657,7 +1657,17 @@ aiwg sdlc-accelerate --auto "Quick prototype"
 
 ## Index Commands
 
-Commands for building and querying the artifact index. The index provides structured, pre-computed metadata about `.aiwg/` artifacts, enabling agents and developers to discover, search, and navigate project artifacts without manual file searching.
+Commands for building and querying the artifact index. The index provides structured, pre-computed metadata about project artifacts, enabling agents and developers to discover, search, and navigate artifacts without manual file searching.
+
+The index uses a **multi-graph architecture** with three built-in graph types:
+
+| Graph | Scans | Storage | Built by default |
+|-------|-------|---------|-----------------|
+| `project` | `.aiwg/` artifacts | `.aiwg/.index/project/` | Yes |
+| `codebase` | `src/`, `test/`, `tools/` | `.aiwg/.index/codebase/` | Yes |
+| `framework` | `agentic/code/`, `docs/` | `.aiwg/.index/framework/` | No (use `--graph framework`) |
+
+All commands without `--graph` operate across all available project-local graphs (`project` + `codebase`). Use `--graph <name>` to target a specific graph.
 
 ### index
 
@@ -1673,6 +1683,9 @@ aiwg index <subcommand> [options]
 - `deps` - Show artifact dependency graph
 - `stats` - Show index statistics
 
+**Global option (all subcommands):**
+- `--graph <type>` - Target a specific graph: `project`, `codebase`, or `framework`
+
 **Capabilities:** cli, index, artifacts, search, dependencies
 **Platforms:** All
 **Tools:** Read, Glob, Grep
@@ -1681,7 +1694,7 @@ aiwg index <subcommand> [options]
 
 ### index build
 
-Build or rebuild the artifact index by scanning `.aiwg/` directories.
+Build or rebuild the artifact index.
 
 ```bash
 aiwg index build [options]
@@ -1691,20 +1704,16 @@ aiwg index build [options]
 - `--force` - Full rebuild (ignore checksums, re-index everything)
 - `--verbose` - Show detailed progress during indexing
 - `--scope <dir>` - Limit scan to a specific subdirectory
+- `--graph <type>` - Build a single graph only (`project`, `codebase`, `framework`)
 
-**Behavior:**
-- Scans `.aiwg/` for `.md`, `.yaml`, and `.json` files
-- Extracts YAML frontmatter metadata (title, type, phase, tags)
-- Computes SHA-256 checksums for incremental indexing
-- Extracts @-mention dependencies from file content
-- Writes index files to `.aiwg/.index/`
+**Default behavior** (no `--graph`): Builds `project` + `codebase` graphs only. The `framework` graph covers the AIWG framework source (`agentic/code/`, `docs/`) and must be built explicitly with `--graph framework`.
 
-**Incremental mode** (default): Only re-indexes files whose checksum has changed since the last build. Use `--force` for a full rebuild.
+**Incremental mode** (default): Only re-indexes files whose checksum has changed. Use `--force` for a full rebuild.
 
 **Examples:**
 
 ```bash
-# Incremental build (fast - skips unchanged files)
+# Build project + codebase (default)
 aiwg index build
 
 # Full rebuild
@@ -1713,15 +1722,27 @@ aiwg index build --force
 # Verbose output
 aiwg index build --verbose
 
-# Scope to requirements only
-aiwg index build --scope requirements
+# Build framework graph (agentic/code/ + docs/)
+aiwg index build --graph framework
+
+# Build a single graph
+aiwg index build --graph project
 ```
 
-**Output files:**
-- `.aiwg/.index/metadata.json` - Artifact metadata entries
-- `.aiwg/.index/tags.json` - Tag index
-- `.aiwg/.index/deps.json` - Dependency graph
-- `.aiwg/.index/stats.json` - Index statistics
+**Output structure:**
+```
+.aiwg/.index/
+├── project/          # .aiwg/ artifacts
+│   ├── metadata.json
+│   ├── tags.json
+│   ├── dependencies.json
+│   └── stats.json
+└── codebase/         # src/, test/, tools/
+    ├── metadata.json
+    ├── tags.json
+    ├── dependencies.json
+    └── stats.json
+```
 
 ---
 
@@ -1742,29 +1763,29 @@ aiwg index query [search-text] [options]
 - `--tags <tag1,tag2>` - Filter by tags (AND logic — all tags must match)
 - `--path <glob>` - Filter by file path glob pattern
 - `--updated-after <date>` - Filter by last-modified date
-- `--limit <n>` - Maximum number of results
+- `--limit <n>` - Maximum number of results (default: 20)
+- `--graph <type>` - Search a specific graph only
 - `--json` - Output as JSON (recommended for agents)
+
+**Default behavior** (no `--graph`): Searches across `project` + `codebase` graphs combined.
 
 **Examples:**
 
 ```bash
-# Keyword search
+# Search all project-local graphs
 aiwg index query "authentication"
+
+# Search framework source only
+aiwg index query "artifact discovery" --graph framework
 
 # Filter by type
 aiwg index query --type use-case
-
-# Filter by phase
-aiwg index query --phase testing
 
 # Combined filters
 aiwg index query "login" --type use-case --phase requirements
 
 # JSON output for agents
 aiwg index query "auth" --json
-
-# Limit results
-aiwg index query --tags security --limit 5
 ```
 
 ---
@@ -1783,12 +1804,15 @@ aiwg index deps <path> [options]
 **Options:**
 - `--direction <dir>` - Direction: `upstream`, `downstream`, or `both` (default: `both`)
 - `--depth <n>` - Maximum traversal depth (default: 3)
+- `--graph <type>` - Use a specific graph's dependency data
 - `--json` - Output as JSON (recommended for agents)
 
 **Behavior:**
 - `upstream` - What this artifact depends on (its @-mentions)
 - `downstream` - What depends on this artifact (mentions it)
 - `both` - Both directions
+
+**Default behavior** (no `--graph`): Merges dependency data from `project` + `codebase` graphs.
 
 **Examples:**
 
@@ -1801,6 +1825,9 @@ aiwg index deps .aiwg/requirements/UC-001.md --direction downstream
 
 # JSON output with limited depth
 aiwg index deps .aiwg/architecture/adr-001.md --depth 2 --json
+
+# Deps within framework source
+aiwg index deps agentic/code/frameworks/sdlc-complete/rules/artifact-discovery.md --graph framework
 ```
 
 ---
@@ -1814,7 +1841,12 @@ aiwg index stats [options]
 ```
 
 **Options:**
+- `--graph <type>` - Show stats for a specific graph only
 - `--json` - Output as JSON (recommended for agents)
+
+**Default behavior** (no `--graph`):
+- Human-readable: shows each available graph with a section header
+- JSON: returns an object keyed by graph name with all stats
 
 **Reports:**
 - Artifact counts by SDLC phase and type
@@ -1825,11 +1857,17 @@ aiwg index stats [options]
 **Examples:**
 
 ```bash
-# Human-readable stats
+# Show all project-local graphs
 aiwg index stats
 
-# JSON output for agents
+# JSON output (aggregated, keyed by graph name)
 aiwg index stats --json
+
+# Single graph
+aiwg index stats --graph project --json
+
+# Framework graph stats
+aiwg index stats --graph framework
 ```
 
 ---

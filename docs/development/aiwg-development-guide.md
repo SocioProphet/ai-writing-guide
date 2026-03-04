@@ -100,22 +100,39 @@ Do not place framework components (schemas, templates, agent definitions) in `.a
    agentic/code/addons/voice-framework/skills/my-skill/SKILL.md
    ```
 
-2. **Deploy to `.claude/` for testing**:
+2. **Activate dev mode** (one-time setup — points the CLI at your local repo):
    ```bash
-   aiwg --use-dev    # Point at local repo (one-time)
-   aiwg use sdlc     # Redeploy from local source
+   aiwg --use-dev /path/to/ai-writing-guide
+   # From inside the repo directory:
+   aiwg --use-dev .
    ```
 
-3. **Test** — the skill/agent is now live in your Claude Code session.
+   Dev mode makes the `aiwg` command delegate **all** subcommands to your
+   local `src/cli/facade.mjs`, so changes to CLI code take effect after
+   `npm run build` without reinstalling the package.
 
-4. **Commit** — only the framework source (`agentic/code/`) goes into git.
+3. **Build and deploy**:
+   ```bash
+   npm run build          # Compile TypeScript changes
+   aiwg use sdlc          # Redeploy framework content from local source
+   ```
+
+4. **Test** — the skill/agent is now live in your Claude Code session. CLI
+   commands like `aiwg index stats` also run from your local build.
+
+5. **Commit** — only the framework source (`agentic/code/`) goes into git.
+
+6. **Switch back when done**:
+   ```bash
+   aiwg --use-stable
+   ```
 
 **Common Mistake**: Writing ONLY to `.claude/skills/my-skill/` without creating the source in `agentic/code/`. The skill works locally but never ships to users and disappears on next `aiwg use`.
 
 **For AI Agents**: When creating new skills, agents, commands, or rules, you MUST:
 1. Create the artifact in the correct `agentic/code/` source location
 2. Update the relevant manifest (`manifest.json`) if one exists
-3. Run `aiwg --use-dev && aiwg use <framework>` or manually copy to `.claude/`
+3. Run `aiwg --use-dev . && npm run build && aiwg use <framework>`
 4. Verify the artifact works from `.claude/`
 5. Only commit changes under `agentic/code/`
 

@@ -5,6 +5,36 @@ All notable changes to AIWG project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning (CalVer)](https://calver.org/) with npm-compatible format (`YYYY.M.PATCH`).
 
+## [2026.3.2] - 2026-03-04 – Service Release
+
+| What changed | Why you care |
+|--------------|--------------|
+| **`--use-dev` delegates full CLI** | `aiwg` commands now run from local build — not just framework content, but all subcommands including `aiwg index` |
+| **`aiwg index` multi-graph fixes** | `stats`, `query`, `deps` without `--graph` now work correctly across project + codebase graphs |
+| **`--graph` flag documented** | CLI reference updated with multi-graph architecture, `framework` graph usage, and new output format |
+
+### Fixed
+
+- **`aiwg index stats` without `--graph`** failed with "No artifact index found" because `indexExists()` checked the legacy `.aiwg/.index/metadata.json` root path; all three stats/query/deps commands now check graph subdirectories first with legacy fallback
+- **`aiwg index query` without `--graph`** same legacy-path bug — now searches across `project` + `codebase` graphs combined
+- **`aiwg index deps` without `--graph`** same legacy-path bug — now merges dependency graphs from all project-local graphs
+- **`--use-dev` only changed framework content source** — CLI commands still ran npm-installed code; now the entry point delegates all subcommands to the dev repo's `src/cli/facade.mjs`
+- **`--use-dev` always pointed at npm package root** — now accepts an explicit path argument (`aiwg --use-dev /path/to/repo` or `aiwg --use-dev .`)
+
+### Changed
+
+- `aiwg index stats` without `--graph`: human-readable output shows each graph with a section header; JSON mode returns object keyed by graph name
+- `aiwg index query` without `--graph`: searches across all project-local graphs, returns merged results
+- `aiwg index deps` without `--graph`: merges dependency graphs from all project-local graphs before traversal
+- `switchToDev()` validates that `src/cli/facade.mjs` exists in the target repo and prints CLI source path in confirmation output
+
+### Added
+
+- **Framework graph** (`--graph framework`): `aiwg index build --graph framework` indexes `agentic/code/` + `docs/` (1,625 artifacts); stored in `.aiwg/.index/framework/`
+- **Multi-graph architecture documented** in `docs/cli-reference.md` — graph types table, `--graph` flag on all index subcommands, output structure, examples
+
+---
+
 ## [2026.3.1] - 2026-03-03 – "Discovery & Durability" Release
 
 | What changed | Why you care |
