@@ -103,6 +103,66 @@
       "name": "cleanup-audit",
       "description": "Dead code analysis and cleanup recommendations for unused exports, orphaned files, and stale dependencies",
       "triggers": ["find dead code", "cleanup audit", "find unused exports", "orphaned files", "stale dependencies", "code cleanup"]
+    },
+    {
+      "name": "code-chunker",
+      "description": "Analyze source file structure and produce a navigable map with logical sections, line ranges, and summaries",
+      "triggers": ["map this file", "chunk this file for navigation", "show me the structure of this file"]
+    },
+    {
+      "name": "decompose-file",
+      "description": "Analyze a large source file and produce a concrete decomposition plan with optional execution",
+      "triggers": ["decompose this file", "split this file into smaller modules", "this file is too large, break it up"]
+    },
+    {
+      "name": "issue-driven-ralph",
+      "description": "Orchestrates issue-driven Ralph loops that post cycle status to issue threads and incorporate human feedback",
+      "triggers": ["address the open issues", "work through the bugs", "fix open issues", "tackle issue"]
+    },
+    {
+      "name": "regression-api-contract",
+      "description": "Detect breaking changes in API contracts across REST, GraphQL, and gRPC interfaces",
+      "triggers": ["API breaking change", "contract regression", "schema compatibility"]
+    },
+    {
+      "name": "regression-auto-baseline",
+      "description": "Automatically manage regression test baseline lifecycle with triggers for releases, deployments, and quality gates",
+      "triggers": ["auto-update baselines", "automatic baseline management", "baseline on release"]
+    },
+    {
+      "name": "regression-baseline",
+      "description": "Create and maintain regression test baselines for comparison and drift detection",
+      "triggers": ["create regression baseline", "update baseline", "baseline the tests"]
+    },
+    {
+      "name": "regression-bisect",
+      "description": "Identify the commit that introduced a regression using git bisect",
+      "triggers": ["find regression commit", "bisect the regression", "when did this break"]
+    },
+    {
+      "name": "regression-cicd-hooks",
+      "description": "Integrate regression testing into CI/CD pipelines with automated baseline comparison and merge blocking",
+      "triggers": ["add regression checks to CI", "setup regression pipeline", "configure regression gates"]
+    },
+    {
+      "name": "regression-metrics",
+      "description": "Track and analyze regression statistics, trends, and health indicators",
+      "triggers": ["regression metrics", "show regression stats", "regression trends"]
+    },
+    {
+      "name": "regression-performance",
+      "description": "Detect performance regressions by comparing benchmarks across versions",
+      "triggers": ["performance regression", "check latency", "benchmark comparison"]
+    },
+    {
+      "name": "regression-report",
+      "description": "Generate comprehensive regression analysis reports combining bisect, baseline, and metrics data",
+      "triggers": ["regression report", "generate regression analysis", "full regression report"]
+    },
+    {
+      "name": "regression-visual",
+      "description": "Detect visual and UI regressions through screenshot comparison and pixel-diff analysis",
+      "triggers": ["visual regression", "UI diff", "screenshot comparison"]
     }
   ],
   "dependencies": {

@@ -20,7 +20,7 @@ export function getCommandsDirectory(platform: Platform, projectPath: string): s
     'factory': '.factory/commands',
     'cursor': '.cursor/commands',
     'codex': '.codex/commands',
-    'copilot': '.github/commands',
+    'copilot': '.github/agents',
     'opencode': '.opencode/command',
     'warp': '.warp/commands',
     'windsurf': '.windsurf/workflows',

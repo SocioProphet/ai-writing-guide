@@ -10,7 +10,7 @@ The SDLC Complete framework provides a comprehensive Plan → Act lifecycle for 
 
 ### Content
 
-- `agents/` — 70+ specialized SDLC role agents (architecture-designer, requirements-analyst, security-gatekeeper, etc.)
+- `agents/` — 90 specialized SDLC role agents (architecture-designer, requirements-analyst, security-gatekeeper, etc.)
 - `commands/` — SDLC-specific slash commands (intake-start, orchestrate-project, security-gate, etc.)
 - `templates/` — Markdown templates for all SDLC artifacts
 - `flows/` — Phase-based workflows (Inception → Elaboration → Construction → Transition)

@@ -227,7 +227,7 @@ aiwg use sdlc --model sonnet --save
 
 | Framework | ID | Description |
 |-----------|-----|------------|
-| **SDLC Complete** | `sdlc` | Full software development lifecycle with 35+ agents |
+| **SDLC Complete** | `sdlc` | Full software development lifecycle with 90 agents |
 | **Marketing Kit** | `marketing` | Complete marketing campaign management |
 | **Writing Quality** | `writing` | Voice profiles and content validation |
 | **All** | `all` | Deploy all frameworks |
@@ -395,7 +395,7 @@ Workspace: /home/user/customer-portal
 Git: clean (main branch)
 
 Frameworks:
-  ✓ sdlc-complete v1.0.0 (35 agents, 42 commands)
+  ✓ sdlc-complete v1.0.0 (90 agents, 42 commands)
   ✓ aiwg-utils v1.0.0
 
 Artifacts:
@@ -1875,7 +1875,7 @@ All commands are registered as extensions in the unified schema. This enables:
 | **Utility** | 3 | prefill-cards, contribute-start, validate-metadata |
 | **Plugin** | 5 | install-plugin, uninstall-plugin, plugin-status, package-plugin, package-all-plugins |
 | **Scaffolding** | 7 | add-agent, add-command, add-skill, add-template, scaffold-addon, scaffold-extension, scaffold-framework |
-| **Ralph** | 4 | ralph, ralph-status, ralph-abort, ralph-resume |
+| **Ralph** | 7 | ralph, ralph-status, ralph-abort, ralph-resume, ralph-external, ralph-memory, ralph-config |
 | **Metrics** | 3 | cost-report, cost-history, metrics-tokens |
 | **Documentation** | 1 | doc-sync |
 | **SDLC Orchestration** | 1 | sdlc-accelerate |
@@ -1883,7 +1883,7 @@ All commands are registered as extensions in the unified schema. This enables:
 | **Index** | 1 | index (4 subcommands) |
 | **Reproducibility** | 4 | execution-mode, snapshot, checkpoint, reproducibility-validate |
 
-**Total:** 44 commands
+**Total:** 47 commands
 
 ---
 

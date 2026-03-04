@@ -1,6 +1,6 @@
 # Skill Inventory
 
-Complete catalog of 55 skills across all AIWG packages.
+Complete catalog of skills across all AIWG packages.
 
 ## Utility Skills (aiwg-utils)
 
@@ -71,16 +71,36 @@ Complete catalog of 55 skills across all AIWG packages.
 | Skill | Purpose |
 |-------|---------|
 | `architecture-evolution` | Track and manage architecture changes |
+| `artifact-lookup` | Search and navigate SDLC artifacts using the artifact index |
 | `artifact-orchestration` | Coordinate artifact generation workflows |
+| `auto-provenance` | Generate W3C PROV-compliant provenance records |
+| `citation-guard` | Real-time citation verification and hallucination prevention |
+| `cleanup-audit` | Dead code analysis and cleanup recommendations |
+| `code-chunker` | Analyze source file structure and produce navigable maps |
 | `decision-support` | Support technical decision making |
+| `decompose-file` | Decomposition planning for large source files |
 | `doc-sync` | Synchronize documentation and code to eliminate drift |
 | `gate-evaluation` | Evaluate phase gate readiness |
+| `grade-on-ingest` | Auto-trigger GRADE quality assessment on new research sources |
 | `incident-triage` | Triage production incidents |
+| `issue-auto-sync` | Automatic issue tracking synchronization from commits |
+| `issue-driven-ralph` | Issue-thread-driven Ralph loops with human feedback |
+| `regression-api-contract` | Detect breaking API contract changes |
+| `regression-auto-baseline` | Automatic regression baseline lifecycle management |
+| `regression-baseline` | Create and maintain regression test baselines |
+| `regression-bisect` | Identify regression-introducing commits via git bisect |
+| `regression-cicd-hooks` | Integrate regression testing into CI/CD pipelines |
+| `regression-learning` | Cross-task learning for regression detection |
+| `regression-metrics` | Track regression statistics and trends |
+| `regression-performance` | Detect performance regressions via benchmark comparison |
+| `regression-report` | Generate comprehensive regression analysis reports |
+| `regression-visual` | Detect visual/UI regressions via screenshot comparison |
 | `risk-cycle` | Manage risk identification cycle |
 | `sdlc-accelerate` | End-to-end SDLC ramp-up from idea to construction-ready |
 | `sdlc-reports` | Generate SDLC status reports |
 | `security-assessment` | Perform security assessments |
 | `test-coverage` | Analyze test coverage |
+| `tot-exploration` | Tree-of-Thought exploration for architecture decisions |
 | `traceability-check` | Verify requirements traceability |
 
 ## SDLC Extension Skills
@@ -130,14 +150,14 @@ Complete catalog of 55 skills across all AIWG packages.
 | doc-intelligence | 5 |
 | skill-factory | 4 |
 | guided-implementation | 1 |
-| sdlc-complete | 10 |
+| sdlc-complete | 32 |
 | sdlc extensions | 6 |
 | media-marketing-kit | 8 |
-| **Total** | **53** |
+| **Total** | **75** |
 
 ## Skills with Script Implementations
 
-10 skills (19%) have Python script implementations. 43 skills (81%) are prompt-only.
+10 skills (13%) have Python script implementations. 65 skills (87%) are prompt-only.
 
 ### Script-Backed Skills Inventory
 
@@ -341,7 +361,7 @@ All issues resolved as of 2024-12-31.
 | voice-apply | Exit code 1 on usage display | Fixed to exit 0, added `--help` flag |
 | ai-pattern-detection | No `--help` flag support | Added `--help` and `-h` support |
 
-### Prompt-Only Skills (43)
+### Prompt-Only Skills (65)
 
 All other skills work through SKILL.md prompt definitions without Python scripts:
 - Claims validation, config validation, NL routing, workspace health

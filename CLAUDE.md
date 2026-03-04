@@ -128,7 +128,7 @@ aiwg new my-project    # Scaffold new project
 aiwg help              # Show all commands
 aiwg doctor            # Check installation health
 
-# See @docs/cli-reference.md for all 44 commands
+# See @docs/cli-reference.md for all 47 commands
 ```
 
 ## Project Artifacts (.aiwg/)
@@ -177,9 +177,9 @@ AIWG uses a unified extension system for all extension types:
 - `@docs/extensions/creating-extensions.md` - Build custom extensions
 - `@docs/extensions/extension-types.md` - Complete type reference
 - `@src/extensions/types.ts` - TypeScript type definitions
-- `@src/extensions/commands/definitions.ts` - All 44 command definitions
+- `@src/extensions/commands/definitions.ts` - All 47 command definitions
 
-## CLI Commands (44 Total)
+## CLI Commands (47 Total)
 
 **See `@docs/cli-reference.md` for complete documentation.**
 
@@ -197,7 +197,7 @@ AIWG uses a unified extension system for all extension types:
 | **Utility** (3) | prefill-cards, contribute-start, validate-metadata |
 | **Plugin** (5) | install-plugin, uninstall-plugin, plugin-status, package-plugin, package-all-plugins |
 | **Scaffolding** (7) | add-agent, add-command, add-skill, add-template, scaffold-addon, scaffold-extension, scaffold-framework |
-| **Ralph** (4) | ralph, ralph-status, ralph-abort, ralph-resume |
+| **Ralph** (7) | ralph, ralph-status, ralph-abort, ralph-resume, ralph-external, ralph-memory, ralph-config |
 | **Metrics** (3) | cost-report, cost-history, metrics-tokens |
 | **Documentation** (1) | doc-sync |
 | **SDLC Orchestration** (1) | sdlc-accelerate |
@@ -244,6 +244,9 @@ aiwg ralph "Fix all tests" --completion "npm test passes"
 aiwg ralph-status            # Show loop status
 aiwg ralph-abort             # Stop loop
 aiwg ralph-resume            # Resume paused loop
+aiwg ralph-external "task"   # Crash-resilient external loop
+aiwg ralph-memory list       # Show debug memory entries
+aiwg ralph-config show       # Show Ralph configuration
 
 # Metrics
 aiwg cost-report             # Show cost report for session
